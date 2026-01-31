@@ -44,7 +44,7 @@ export const Layout = ({ children }: LayoutProps) => {
             FollowerCount
           </Typography>
           <Link
-            href="https://github.com"
+            href="https://github.com/afaafhariri/follower-watch"
             target="_blank"
             rel="noopener noreferrer"
             sx={{ color: "text.secondary" }}
