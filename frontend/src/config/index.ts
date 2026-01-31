@@ -12,7 +12,6 @@ export const RETRY_CONFIG = {
   maxDelay: 10000,
 } as const;
 
-// File upload configuration
 export const UPLOAD_CONFIG = {
   maxFileSizeMB: 50,
   acceptedTypes: [".zip", "application/zip", "application/x-zip-compressed"],

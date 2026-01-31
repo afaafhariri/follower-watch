@@ -1,20 +1,8 @@
-.PHONY: build clean test deploy
+.PHONY: test test-coverage run deploy clean fmt lint deps
 
-# Build the Lambda function
-build:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap main.go
-	zip function.zip bootstrap
+run:
+	cd cmd && FUNCTION_TARGET=AnalyzeFollowers go run main.go
 
-# Build for ARM64 (Graviton2 - more cost effective)
-build-arm:
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap main.go
-	zip function.zip bootstrap
-
-# Clean build artifacts
-clean:
-	rm -f bootstrap function.zip
-
-# Run tests
 test:
 	go test -v ./...
 
@@ -23,15 +11,53 @@ test-coverage:
 	go test -v -cover -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
-# Download dependencies
 deps:
 	go mod download
 	go mod tidy
 
-# Format code
 fmt:
 	go fmt ./...
 
-# Lint code
 lint:
 	go vet ./...
+
+clean:
+	rm -f coverage.out coverage.html
+
+# Deploy to Google Cloud Functions (2nd gen)
+deploy:
+	gcloud functions deploy follower-count-api \
+		--gen2 \
+		--runtime=go121 \
+		--region=us-central1 \
+		--source=. \
+		--entry-point=AnalyzeFollowers \
+		--trigger-http \
+		--allow-unauthenticated \
+		--memory=256MB \
+		--timeout=60s \
+		--set-env-vars="ALLOWED_ORIGINS=$(ALLOWED_ORIGINS)"
+
+# Deploy with specific project
+deploy-project:
+	gcloud functions deploy follower-count-api \
+		--gen2 \
+		--project=$(GCP_PROJECT) \
+		--runtime=go121 \
+		--region=$(GCP_REGION) \
+		--source=. \
+		--entry-point=AnalyzeFollowers \
+		--trigger-http \
+		--allow-unauthenticated \
+		--memory=256MB \
+		--timeout=60s \
+		--set-env-vars="ALLOWED_ORIGINS=$(ALLOWED_ORIGINS)"
+
+url:
+	gcloud functions describe follower-count-api --gen2 --region=us-central1 --format='value(serviceConfig.uri)'
+
+logs:
+	gcloud functions logs read follower-count-api --gen2 --region=us-central1 --limit=50
+
+delete:
+	gcloud functions delete follower-count-api --gen2 --region=us-central1 --quiet

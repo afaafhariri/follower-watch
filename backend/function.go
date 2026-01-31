@@ -1,24 +1,27 @@
-package main
+// Package followercount provides a Cloud Function for analyzing Instagram data
+package followercount
 
 import (
 	"archive/zip"
 	"bytes"
-	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 )
 
-// Instagram data structures
+func init() {
+	functions.HTTP("AnalyzeFollowers", AnalyzeFollowers)
+}
+
 type InstagramRelationship struct {
 	Title     string `json:"title"`
 	MediaList []struct {
@@ -35,14 +38,12 @@ type FollowingData struct {
 	RelationshipsFollowing []InstagramRelationship `json:"relationships_following"`
 }
 
-// NonFollower represents a user who doesn't follow back
 type NonFollower struct {
 	Username   string `json:"username"`
 	ProfileURL string `json:"profile_url"`
 	FollowedAt int64  `json:"followed_at,omitempty"`
 }
 
-// Response structure
 type APIResponse struct {
 	Success        bool          `json:"success"`
 	NonFollowers   []NonFollower `json:"non_followers,omitempty"`
@@ -53,7 +54,6 @@ type APIResponse struct {
 	Message        string        `json:"message,omitempty"`
 }
 
-// Rate limiting implementation
 var (
 	rateLimitMu    sync.Mutex
 	requestTracker = make(map[string][]time.Time)
@@ -61,18 +61,30 @@ var (
 	windowDuration = time.Minute * 5
 )
 
-// CORS headers - configured for production
-func getCORSHeaders() map[string]string {
-	return map[string]string{
-		"Access-Control-Allow-Origin":  "*", // Configure with your frontend domain
-		"Access-Control-Allow-Methods": "POST, OPTIONS",
-		"Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
-		"Access-Control-Max-Age":       "86400",
-		"Content-Type":                 "application/json",
+func getAllowedOrigins() []string {
+	origins := os.Getenv("ALLOWED_ORIGINS")
+	if origins == "" {
+		return []string{"*"}
 	}
+	return strings.Split(origins, ",")
 }
 
-// Check rate limit for an IP
+func setCORSHeaders(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	allowedOrigins := getAllowedOrigins()
+
+	for _, o := range allowedOrigins {
+		if o == "*" || o == origin {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			break
+		}
+	}
+
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Requested-With")
+	w.Header().Set("Access-Control-Max-Age", "86400")
+}
+
 func checkRateLimit(ip string) bool {
 	rateLimitMu.Lock()
 	defer rateLimitMu.Unlock()
@@ -89,60 +101,61 @@ func checkRateLimit(ip string) bool {
 	}
 	requestTracker[ip] = validRequests
 
-	// Check if under limit
 	if len(validRequests) >= maxRequests {
 		return false
 	}
 
-	// Add current request
 	requestTracker[ip] = append(requestTracker[ip], now)
 	return true
 }
 
-// Create error response (no sensitive data logged)
-func errorResponse(statusCode int, message string) events.APIGatewayProxyResponse {
-	response := APIResponse{
+func getClientIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		return strings.TrimSpace(parts[0])
+	}
+
+	realIP := r.Header.Get("X-Real-IP")
+	if realIP != "" {
+		return realIP
+	}
+
+	ip := r.RemoteAddr
+	if colonIdx := strings.LastIndex(ip, ":"); colonIdx != -1 {
+		ip = ip[:colonIdx]
+	}
+	return ip
+}
+
+func sendJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(data)
+}
+
+func sendError(w http.ResponseWriter, statusCode int, message string) {
+	sendJSON(w, statusCode, APIResponse{
 		Success: false,
 		Error:   message,
-	}
-	body, _ := json.Marshal(response)
-	return events.APIGatewayProxyResponse{
-		StatusCode: statusCode,
-		Headers:    getCORSHeaders(),
-		Body:       string(body),
-	}
+	})
 }
 
-// Create success response
-func successResponse(data APIResponse) events.APIGatewayProxyResponse {
-	data.Success = true
-	body, _ := json.Marshal(data)
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers:    getCORSHeaders(),
-		Body:       string(body),
-	}
-}
-
-// Extract usernames from follower files (handles followers_1.json, followers_2.json, etc.)
 func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 	followers := make(map[string]struct{})
 	followerPattern := regexp.MustCompile(`(?i)followers[/_]?(\d+)?\.json$|^followers\.json$`)
 
 	for _, file := range zipReader.File {
-		// Check various paths for follower files
 		fileName := file.Name
 		baseName := fileName
 		if idx := strings.LastIndex(fileName, "/"); idx != -1 {
 			baseName = fileName[idx+1:]
 		}
 
-		// Match follower files including followers_1.json, followers_2.json, etc.
 		if !followerPattern.MatchString(baseName) && !strings.Contains(strings.ToLower(fileName), "followers") {
 			continue
 		}
 
-		// Skip if it's following file
 		if strings.Contains(strings.ToLower(baseName), "following") {
 			continue
 		}
@@ -158,7 +171,6 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 			continue
 		}
 
-		// Try parsing as array of relationships first
 		var relationships []InstagramRelationship
 		if err := json.Unmarshal(content, &relationships); err == nil {
 			for _, rel := range relationships {
@@ -171,7 +183,6 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 			continue
 		}
 
-		// Try parsing as single relationship object
 		var singleRel InstagramRelationship
 		if err := json.Unmarshal(content, &singleRel); err == nil {
 			for _, data := range singleRel.StringListData {
@@ -185,7 +196,6 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 	return followers, len(followers), nil
 }
 
-// Extract following list
 func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 	var following []NonFollower
 
@@ -211,7 +221,6 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 			continue
 		}
 
-		// Try parsing as FollowingData structure
 		var followingData FollowingData
 		if err := json.Unmarshal(content, &followingData); err == nil {
 			for _, rel := range followingData.RelationshipsFollowing {
@@ -230,7 +239,6 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 			}
 		}
 
-		// Try parsing as array of relationships
 		var relationships []InstagramRelationship
 		if err := json.Unmarshal(content, &relationships); err == nil {
 			for _, rel := range relationships {
@@ -250,7 +258,6 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 	return following, len(following), nil
 }
 
-// Find non-followers
 func findNonFollowers(following []NonFollower, followers map[string]struct{}) []NonFollower {
 	var nonFollowers []NonFollower
 
@@ -264,100 +271,80 @@ func findNonFollowers(following []NonFollower, followers map[string]struct{}) []
 	return nonFollowers
 }
 
-// Main handler
-func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Handle preflight OPTIONS request
-	if request.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusOK,
-			Headers:    getCORSHeaders(),
-		}, nil
+func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 
-	// Only allow POST
-	if request.HTTPMethod != "POST" {
-		return errorResponse(http.StatusMethodNotAllowed, "Method not allowed"), nil
+	if r.Method != http.MethodPost {
+		sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
 	}
 
-	// Rate limiting - get client IP
-	clientIP := request.RequestContext.Identity.SourceIP
-	if clientIP == "" {
-		clientIP = "unknown"
-	}
-
+	clientIP := getClientIP(r)
 	if !checkRateLimit(clientIP) {
-		return errorResponse(http.StatusTooManyRequests, "Rate limit exceeded. Please try again later."), nil
+		sendError(w, http.StatusTooManyRequests, "Rate limit exceeded. Please try again later.")
+		return
 	}
 
-	// Validate content type
-	contentType := request.Headers["Content-Type"]
-	if contentType == "" {
-		contentType = request.Headers["content-type"]
-	}
+	r.Body = http.MaxBytesReader(w, r.Body, 50*1024*1024)
 
-	// Decode body (handle base64 if needed)
-	var bodyBytes []byte
-	var err error
-
-	if request.IsBase64Encoded {
-		bodyBytes, err = base64.StdEncoding.DecodeString(request.Body)
-		if err != nil {
-			return errorResponse(http.StatusBadRequest, "Invalid base64 encoding"), nil
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			sendError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 50MB.")
+			return
 		}
-	} else {
-		bodyBytes = []byte(request.Body)
+		sendError(w, http.StatusBadRequest, "Failed to read request body")
+		return
 	}
 
-	// Validate file size (max 50MB)
-	if len(bodyBytes) > 50*1024*1024 {
-		return errorResponse(http.StatusRequestEntityTooLarge, "File too large. Maximum size is 50MB."), nil
-	}
-
-	// Validate ZIP magic bytes
 	if len(bodyBytes) < 4 || bodyBytes[0] != 0x50 || bodyBytes[1] != 0x4B {
-		return errorResponse(http.StatusBadRequest, "Invalid file format. Please upload a valid ZIP file."), nil
+		sendError(w, http.StatusBadRequest, "Invalid file format. Please upload a valid ZIP file.")
+		return
 	}
 
-	// Create zip reader from memory
 	zipReader, err := zip.NewReader(bytes.NewReader(bodyBytes), int64(len(bodyBytes)))
 	if err != nil {
-		return errorResponse(http.StatusBadRequest, "Failed to read ZIP file. Please ensure it's a valid ZIP archive."), nil
+		sendError(w, http.StatusBadRequest, "Failed to read ZIP file. Please ensure it's a valid ZIP archive.")
+		return
 	}
 
-	// Extract followers (into a set for O(1) lookup)
 	followers, totalFollowers, err := extractFollowers(zipReader)
 	if err != nil {
-		return errorResponse(http.StatusInternalServerError, "Failed to process followers data"), nil
+		log.Printf("Error extracting followers: %v", err)
+		sendError(w, http.StatusInternalServerError, "Failed to process followers data")
+		return
 	}
 
-	// Extract following list
 	following, totalFollowing, err := extractFollowing(zipReader)
 	if err != nil {
-		return errorResponse(http.StatusInternalServerError, "Failed to process following data"), nil
+		log.Printf("Error extracting following: %v", err)
+		sendError(w, http.StatusInternalServerError, "Failed to process following data")
+		return
 	}
 
-	// Validate we found data
 	if totalFollowing == 0 {
-		return errorResponse(http.StatusBadRequest, "No following data found. Please upload a valid Instagram data export."), nil
+		sendError(w, http.StatusBadRequest, "No following data found. Please upload a valid Instagram data export.")
+		return
 	}
 
 	if totalFollowers == 0 {
-		return errorResponse(http.StatusBadRequest, "No followers data found. Please upload a valid Instagram data export."), nil
+		sendError(w, http.StatusBadRequest, "No followers data found. Please upload a valid Instagram data export.")
+		return
 	}
 
-	// Find non-followers
 	nonFollowers := findNonFollowers(following, followers)
 
-	// Return success response (no usernames logged - privacy compliant)
-	return successResponse(APIResponse{
+	sendJSON(w, http.StatusOK, APIResponse{
+		Success:        true,
 		NonFollowers:   nonFollowers,
 		TotalFollowing: totalFollowing,
 		TotalFollowers: totalFollowers,
 		Count:          len(nonFollowers),
 		Message:        "Analysis complete",
-	}), nil
-}
-
-func main() {
-	lambda.Start(handleRequest)
+	})
 }

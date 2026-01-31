@@ -1,13 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  AppBar,
-  Toolbar,
-  Link,
-  Paper,
-} from "@mui/material";
+import { Box, Container, Typography, AppBar, Toolbar, Link, Paper } from "@mui/material";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import GitHubIcon from "@mui/icons-material/GitHub";
 

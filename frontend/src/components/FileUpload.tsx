@@ -24,7 +24,6 @@ export const FileUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): string | null => {
-    // Check file type
     const isZip =
       file.type === "application/zip" ||
       file.type === "application/x-zip-compressed" ||
@@ -34,7 +33,6 @@ export const FileUpload = ({
       return "Please upload a ZIP file";
     }
 
-    // Check file size (max 50MB)
     const maxSize = UPLOAD_CONFIG.maxFileSizeMB * 1024 * 1024;
     if (file.size > maxSize) {
       return `File too large. Maximum size is ${UPLOAD_CONFIG.maxFileSizeMB}MB`;
@@ -88,7 +86,6 @@ export const FileUpload = ({
     onUploadStart();
     setUploadProgress(0);
 
-    // Simulate progress for better UX
     const progressInterval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 90) {

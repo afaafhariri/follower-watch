@@ -9,22 +9,47 @@ NC='\033[0m'
 echo -e "${GREEN}🔧 Starting local development environment${NC}"
 echo "==========================================="
 
-# Start backend with SAM local
+# Cleanup on exit
+cleanup() {
+    echo ""
+    echo -e "${YELLOW}Shutting down...${NC}"
+    
+    if [ -n "$BACKEND_PID" ]; then
+        kill $BACKEND_PID 2>/dev/null || true
+    fi
+    
+    if [ -n "$FRONTEND_PID" ]; then
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+    
+    echo -e "${GREEN}Done${NC}"
+}
+
+trap cleanup EXIT
+
+# Start backend using functions-framework
 start_backend() {
-    echo -e "${YELLOW}Starting SAM local API...${NC}"
+    echo -e "${YELLOW}Starting Cloud Functions emulator...${NC}"
     
     cd backend
     
-    # Build Go binary for local testing (native architecture)
-    go build -o bootstrap main.go
+    # Download dependencies if needed
+    if [ ! -f "go.sum" ]; then
+        echo "Downloading dependencies..."
+        go mod tidy
+    fi
     
-    cd ..
+    # Set environment variables
+    export ALLOWED_ORIGINS="http://localhost:3000"
+    export FUNCTION_TARGET="AnalyzeFollowers"
+    export PORT=8080
     
-    # Start SAM local API
-    sam local start-api --port 3001 --warm-containers EAGER &
-    SAM_PID=$!
+    # Run using functions-framework
+    cd cmd && go run main.go &
+    BACKEND_PID=$!
+    cd ../..
     
-    echo -e "${GREEN}✓ Backend running on http://localhost:3001${NC}"
+    echo -e "${GREEN}✓ Backend running on http://localhost:8080${NC}"
 }
 
 # Start frontend dev server
@@ -38,31 +63,13 @@ start_frontend() {
         npm install
     fi
     
-    npm run dev &
+    VITE_API_URL="http://localhost:8080" npm run dev &
     FRONTEND_PID=$!
     
     cd ..
     
     echo -e "${GREEN}✓ Frontend running on http://localhost:3000${NC}"
 }
-
-# Cleanup on exit
-cleanup() {
-    echo ""
-    echo -e "${YELLOW}Shutting down...${NC}"
-    
-    if [ -n "$SAM_PID" ]; then
-        kill $SAM_PID 2>/dev/null || true
-    fi
-    
-    if [ -n "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null || true
-    fi
-    
-    echo -e "${GREEN}Done${NC}"
-}
-
-trap cleanup EXIT
 
 # Main
 main() {
@@ -74,7 +81,7 @@ main() {
     echo -e "${GREEN}🚀 Development environment ready!${NC}"
     echo "=================================="
     echo -e "Frontend: ${YELLOW}http://localhost:3000${NC}"
-    echo -e "Backend:  ${YELLOW}http://localhost:3001/api/analyze${NC}"
+    echo -e "Function: ${YELLOW}http://localhost:8080${NC}"
     echo ""
     echo "Press Ctrl+C to stop"
     

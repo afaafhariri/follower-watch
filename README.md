@@ -1,21 +1,21 @@
 # FollowerCount
 
-A privacy-first web application that identifies Instagram users who don't follow you back. Built with Go (AWS Lambda), React/TypeScript (MUI), and deployed on AWS.
+A privacy-first web application that identifies Instagram users who don't follow you back. Built with Go (Cloud Functions) and React/TypeScript (MUI), deployed on Google Cloud Platform.
 
 ## 🔒 Privacy First
 
 - **In-Memory Processing**: All data is processed entirely in RAM—nothing is ever written to disk
 - **No Database**: We don't store any user data
-- **No Logging**: Usernames and sensitive metadata are never logged to CloudWatch
+- **No Logging**: Usernames and sensitive metadata are never logged
 - **Client-Side**: Results can be downloaded as CSV, generated entirely in your browser
 
 ## 🛠 Tech Stack
 
 ### Backend
 
-- **Go 1.21+**: High-performance Lambda handler
-- **AWS Lambda**: Serverless compute (ARM64/Graviton2)
-- **API Gateway**: RESTful API with CORS
+- **Go 1.21+**: High-performance Cloud Function
+- **Cloud Functions (2nd gen)**: Serverless compute with automatic scaling
+- **Functions Framework**: Google's official framework for portable functions
 
 ### Frontend
 
@@ -27,19 +27,21 @@ A privacy-first web application that identifies Instagram users who don't follow
 
 ### Infrastructure
 
-- **AWS SAM**: Infrastructure as Code
-- **S3**: Static website hosting
-- **CloudFront**: CDN with HTTPS
+- **Google Cloud Functions**: Serverless backend (2nd generation)
+- **Firebase Hosting**: (Recommended) Static site hosting with CDN
+- **Cloud Storage**: Alternative static hosting option
 
 ## 📁 Project Structure
 
 ```
 follower-watch/
-├── backend/                 # Go Lambda function
-│   ├── main.go             # Lambda handler
-│   ├── main_test.go        # Unit tests
+├── backend/                 # Go Cloud Function
+│   ├── function.go         # Main function handler
+│   ├── function_test.go    # Unit tests
 │   ├── go.mod              # Go modules
-│   └── Makefile            # Build commands
+│   ├── Makefile            # Build commands
+│   └── cmd/                # Local development
+│       └── main.go         # Functions framework runner
 ├── frontend/               # React application
 │   ├── src/
 │   │   ├── components/     # React components
@@ -49,10 +51,9 @@ follower-watch/
 │   ├── package.json
 │   └── vite.config.ts
 ├── scripts/                # Build & deploy scripts
-│   ├── deploy.sh           # Full deployment
+│   ├── deploy.sh           # GCP deployment
 │   └── dev.sh              # Local development
-├── template.yaml           # AWS SAM template
-└── samconfig.toml          # SAM configuration
+└── README.md
 ```
 
 ## 🚀 Getting Started
@@ -61,8 +62,7 @@ follower-watch/
 
 - [Go 1.21+](https://golang.org/dl/)
 - [Node.js 18+](https://nodejs.org/)
-- [AWS CLI](https://aws.amazon.com/cli/)
-- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- [gcloud CLI](https://cloud.google.com/sdk/docs/install)
 
 ### Local Development
 
@@ -75,12 +75,11 @@ follower-watch/
 2. **Start the development environment**
 
    ```bash
-   chmod +x scripts/dev.sh
    ./scripts/dev.sh
    ```
 
    This starts:
-   - Backend on `http://localhost:3001`
+   - Cloud Functions emulator on `http://localhost:8080`
    - Frontend on `http://localhost:3000`
 
 3. **Or run separately**
@@ -89,9 +88,7 @@ follower-watch/
 
    ```bash
    cd backend
-   go run main.go  # For local testing
-   # Or use SAM:
-   sam local start-api --port 3001
+   make run
    ```
 
    Frontend:
@@ -99,7 +96,7 @@ follower-watch/
    ```bash
    cd frontend
    npm install
-   npm run dev
+   VITE_API_URL="http://localhost:8080" npm run dev
    ```
 
 ### Running Tests
@@ -112,128 +109,149 @@ make test-coverage # Run with coverage
 
 ## 🌐 Deployment
 
-### Quick Deploy
+### Prerequisites
+
+1. **Install gcloud CLI**
+
+   ```bash
+   # macOS
+   brew install google-cloud-sdk
+
+   # Or download from: https://cloud.google.com/sdk/docs/install
+   ```
+
+2. **Authenticate and set project**
+
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+3. **Enable required APIs**
+
+   ```bash
+   gcloud services enable cloudfunctions.googleapis.com
+   gcloud services enable cloudbuild.googleapis.com
+   gcloud services enable run.googleapis.com
+   ```
+
+### Deploy Cloud Function
 
 ```bash
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh prod
+./scripts/deploy.sh deploy
 ```
 
-### Manual Deployment
+Or manually:
 
-1. **Build the backend**
+```bash
+cd backend
+make deploy
+```
 
-   ```bash
-   cd backend
-   make build-arm  # For ARM64 Lambda
-   ```
+### Get Function URL
 
-2. **Build the frontend**
+```bash
+./scripts/deploy.sh info
+# Or:
+cd backend && make url
+```
 
-   ```bash
-   cd frontend
-   VITE_API_URL=https://your-api-url npm run build
-   ```
+### Deploy Frontend
 
-3. **Deploy with SAM**
+After deploying the backend, build the frontend with the function URL:
 
-   ```bash
-   sam build
-   sam deploy --guided  # First time
-   sam deploy           # Subsequent deploys
-   ```
+```bash
+./scripts/deploy.sh frontend
+```
 
-4. **Deploy frontend to S3**
-   ```bash
-   aws s3 sync frontend/dist s3://your-bucket-name --delete
-   ```
+Then deploy to Firebase Hosting (recommended):
 
-## 📋 How It Works
+```bash
+npm install -g firebase-tools
+firebase login
+firebase init hosting  # Select your project, set public dir to frontend/dist
+firebase deploy --only hosting
+```
 
-1. **User uploads** their Instagram data export (ZIP file)
-2. **Backend receives** the file as a binary payload
-3. **In-memory processing**:
-   - Extract `following.json`
-   - Extract all `followers_*.json` files
-   - Build a HashSet of followers for O(1) lookup
-   - Compare following list against followers set
-4. **Return results** as JSON
-5. **Frontend displays** results in a sortable data grid
-6. **User can download** results as CSV
+### Update CORS
 
-## 🔧 Configuration
+After deploying the frontend, update the function's CORS settings:
+
+```bash
+cd backend
+ALLOWED_ORIGINS="https://your-app.web.app" make deploy
+```
+
+### Other Commands
+
+```bash
+./scripts/deploy.sh info      # Get deployment info
+./scripts/deploy.sh logs      # View function logs
+./scripts/deploy.sh logs 100  # View last 100 logs
+./scripts/deploy.sh delete    # Delete the function
+```
+
+## 📊 How It Works
+
+1. **Export Your Instagram Data**
+   - Go to Instagram Settings → Your Activity → Download Your Information
+   - Select "Followers and Following" and download as JSON
+   - Download the ZIP file
+
+2. **Upload the ZIP**
+   - Drag and drop or select your Instagram data ZIP file
+   - The function processes everything in-memory
+
+3. **View Results**
+   - See a list of accounts that don't follow you back
+   - Sort and search through the results
+   - Download as CSV if needed
+
+## 💰 Cost Estimate
+
+**Google Cloud Functions (2nd gen):**
+
+- First 2 million invocations/month: Free
+- Memory: 256MB
+- Timeout: 60 seconds
+- **Estimated cost: ~$0-5/month** for typical usage
+
+**Firebase Hosting:**
+
+- 10 GB storage: Free
+- 360 MB/day bandwidth: Free
+- **Typically free** for personal projects
+
+## 🔧 Development
+
+### Project Structure
+
+The backend uses Google's functions-framework-go which allows:
+
+- Local development with the same code that runs in production
+- Easy testing with standard Go testing tools
+- Portable functions that can run anywhere
 
 ### Environment Variables
 
-Frontend (`.env`):
+**Backend:**
 
-```env
-VITE_API_URL=https://your-api-gateway-url
-```
+- `ALLOWED_ORIGINS`: CORS allowed origins (comma-separated)
+- `PORT`: Server port (default: 8080)
+- `FUNCTION_TARGET`: Function name for local dev
 
-### SAM Parameters
+**Frontend:**
 
-| Parameter        | Description                         | Default |
-| ---------------- | ----------------------------------- | ------- |
-| `Stage`          | Deployment stage (dev/staging/prod) | `prod`  |
-| `FrontendDomain` | CORS allowed origin                 | `*`     |
+- `VITE_API_URL`: Backend function URL
 
-## 📊 API Reference
+## 📝 License
 
-### POST /api/analyze
+MIT License - see [LICENSE](LICENSE)
 
-Upload a ZIP file for analysis.
+## 🤝 Contributing
 
-**Request:**
-
-- Content-Type: `application/zip`
-- Body: Binary ZIP file
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "non_followers": [
-    {
-      "username": "example_user",
-      "profile_url": "https://instagram.com/example_user",
-      "followed_at": 1234567890
-    }
-  ],
-  "total_following": 500,
-  "total_followers": 450,
-  "count": 75,
-  "message": "Analysis complete"
-}
-```
-
-**Error Response:**
-
-```json
-{
-  "success": false,
-  "error": "Error message"
-}
-```
-
-### Rate Limiting
-
-- 10 requests per 5-minute window per IP
-- HTTP 429 returned when exceeded
-
-## 🛡 Security
-
-- All connections use HTTPS
-- CORS configured per environment
-- Rate limiting prevents abuse
-- No sensitive data logging
-- Input validation for file type and size
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## ⚠️ Disclaimer
-
-This tool is not affiliated with, endorsed by, or connected to Instagram or Meta Platforms, Inc. Use responsibly and in accordance with Instagram's Terms of Service.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
