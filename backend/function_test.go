@@ -34,23 +34,18 @@ func createTestZip(t *testing.T, files map[string]string) []byte {
 }
 
 func TestAnalyzeFollowers_ValidZip(t *testing.T) {
-	followersData := `[{
-		"title": "followers",
-		"string_list_data": [
-			{"value": "user1", "timestamp": 1234567890},
-			{"value": "user2", "timestamp": 1234567891}
-		]
-	}]`
+	// Each InstagramRelationship represents one user
+	followersData := `[
+		{"string_list_data": [{"value": "user1", "timestamp": 1234567890}]},
+		{"string_list_data": [{"value": "user2", "timestamp": 1234567891}]}
+	]`
 
 	followingData := `{
-		"relationships_following": [{
-			"title": "following",
-			"string_list_data": [
-				{"value": "user1", "timestamp": 1234567890},
-				{"value": "user3", "timestamp": 1234567892},
-				{"value": "user4", "timestamp": 1234567893}
-			]
-		}]
+		"relationships_following": [
+			{"title": "user1", "string_list_data": [{"href": "https://instagram.com/user1", "timestamp": 1234567890}]},
+			{"title": "user3", "string_list_data": [{"href": "https://instagram.com/user3", "timestamp": 1234567892}]},
+			{"title": "user4", "string_list_data": [{"href": "https://instagram.com/user4", "timestamp": 1234567893}]}
+		]
 	}`
 
 	zipBytes := createTestZip(t, map[string]string{

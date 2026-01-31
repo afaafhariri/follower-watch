@@ -22,8 +22,6 @@ A privacy-first web application that identifies Instagram users who don't follow
 - **React 18**: Modern UI framework
 - **TypeScript**: Type-safe development
 - **Material UI (MUI) 7**: Component library
-- **Vite**: Lightning-fast build tool
-- **MUI X Data Grid**: High-performance data display
 
 ### Infrastructure
 
