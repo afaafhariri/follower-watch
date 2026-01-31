@@ -43,3 +43,6 @@ coverage/
 tmp/
 temp/
 .tmp/
+
+# Documentation (private)
+DEPLOYMENT.md
