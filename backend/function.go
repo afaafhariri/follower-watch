@@ -199,13 +199,17 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 		if err := json.Unmarshal(content, &relationships); err == nil {
 			log.Printf("[DEBUG] extractFollowers: parsed %s as []InstagramRelationship with %d items", fileName, len(relationships))
 			for _, rel := range relationships {
-				// Username can be in title OR in string_list_data[].value
-				username := rel.Title
+				// For followers: username is in string_list_data[].value (title is empty)
+				// For following: username is in title (string_list_data has href/timestamp only)
+				var username string
 				if len(rel.StringListData) > 0 && rel.StringListData[0].Value != "" {
 					username = rel.StringListData[0].Value
+				} else if rel.Title != "" {
+					username = rel.Title
 				}
 				if username != "" {
 					followers[strings.ToLower(username)] = struct{}{}
+					log.Printf("[DEBUG] extractFollowers: added follower: %s", username)
 				}
 			}
 			continue
@@ -216,10 +220,11 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 		var singleRel InstagramRelationship
 		if err := json.Unmarshal(content, &singleRel); err == nil {
 			log.Printf("[DEBUG] extractFollowers: parsed %s as single InstagramRelationship", fileName)
-			// Username can be in title OR in string_list_data[].value
-			username := singleRel.Title
+			var username string
 			if len(singleRel.StringListData) > 0 && singleRel.StringListData[0].Value != "" {
 				username = singleRel.StringListData[0].Value
+			} else if singleRel.Title != "" {
+				username = singleRel.Title
 			}
 			if username != "" {
 				followers[strings.ToLower(username)] = struct{}{}
@@ -294,14 +299,18 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 		if err := json.Unmarshal(content, &followingData); err == nil {
 			log.Printf("[DEBUG] extractFollowing: parsed %s as FollowingData with %d relationships", fileName, len(followingData.RelationshipsFollowing))
 			for _, rel := range followingData.RelationshipsFollowing {
-				// Username can be in title OR in string_list_data[].value
-				username := rel.Title
+				// For following.json: username is in title, string_list_data has href/timestamp
+				var username string
 				var timestamp int64
 				if len(rel.StringListData) > 0 {
 					if rel.StringListData[0].Value != "" {
 						username = rel.StringListData[0].Value
 					}
 					timestamp = rel.StringListData[0].Timestamp
+				}
+				// If no value in string_list_data, use title
+				if username == "" && rel.Title != "" {
+					username = rel.Title
 				}
 				if username != "" {
 					following = append(following, NonFollower{
@@ -323,14 +332,16 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 		if err := json.Unmarshal(content, &relationships); err == nil {
 			log.Printf("[DEBUG] extractFollowing: parsed %s as []InstagramRelationship with %d items", fileName, len(relationships))
 			for _, rel := range relationships {
-				// Username can be in title OR in string_list_data[].value
-				username := rel.Title
+				var username string
 				var timestamp int64
 				if len(rel.StringListData) > 0 {
 					if rel.StringListData[0].Value != "" {
 						username = rel.StringListData[0].Value
 					}
 					timestamp = rel.StringListData[0].Timestamp
+				}
+				if username == "" && rel.Title != "" {
+					username = rel.Title
 				}
 				if username != "" {
 					following = append(following, NonFollower{
