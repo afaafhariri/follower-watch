@@ -47,7 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
             href="https://github.com/afaafhariri/follower-watch"
             target="_blank"
             rel="noopener noreferrer"
-            sx={{ color: "text.secondary" }}
+            sx={{ color: "text.primary" }}
           >
             <GitHubIcon />
           </Link>
