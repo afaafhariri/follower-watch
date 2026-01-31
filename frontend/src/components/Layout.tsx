@@ -114,9 +114,11 @@ export const Layout = ({ children }: LayoutProps) => {
           >
             1. Go to Instagram Settings → Privacy and Security → Download Data
             <br />
-            2. Request your data in JSON format
+            2. Select <b>"following and followers"</b> only and clear others
             <br />
-            3. Download the ZIP file when ready and upload it here
+            3. Request your data in JSON format and set time to "all time"
+            <br />
+            4. Download the ZIP file when ready and upload it here
           </Typography>
         </Box>
       </Container>
