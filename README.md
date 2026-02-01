@@ -20,9 +20,16 @@ A **privacy-first** web application that identifies Instagram users who don't fo
 ### Infrastructure
 
 - **Google Cloud Functions**: Serverless backend (2nd generation)
-- **Cloud Storage**: Static website hosting
+- **Firebase Hosting**: Static website hosting
 
-## 📁 Project Structure
+
+The backend uses Google's functions-framework-go which allows:
+
+- Local development with the same code that runs in production
+- Easy testing with standard Go testing tools
+- Portable functions that can run anywhere
+
+## Project Structure
 
 ```
 follower-watch/
@@ -40,11 +47,10 @@ follower-watch/
 │   │   └── App.tsx         # Main app component
 │   ├── package.json
 │   └── vite.config.ts
-├── DEPLOYMENT.md           # Deployment instructions
 └── README.md
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -84,22 +90,11 @@ cd backend
 go test -v ./...
 ```
 
-## 🚀 Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment instructions using Google Cloud Console.
-
-**Quick Overview:**
-
-1. Deploy backend code to **Google Cloud Functions** via the console
-2. Build frontend locally with `npm run build`
-3. Upload `dist/` folder to **Cloud Storage** bucket
-4. Configure CORS settings
-
 ## How It Works
 
 1. **Export Your Instagram Data**
    - Go to Instagram Settings → Your Activity → Download Your Information
-   - Select "Followers and Following" and download as JSON
+   - Select "Followers and Following", clear other selections and select download as JSON
    - Download the ZIP file
 
 2. **Upload the ZIP**
@@ -110,49 +105,6 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment instructions using Google
    - See a list of accounts that don't follow you back
    - Sort and search through the results
 
-## Cost Estimate
-
-**Google Cloud Functions (2nd gen):**
-
-- First 2 million invocations/month: Free
-- Memory: 256MB
-- Timeout: 60 seconds
-- **Estimated cost: ~$0-5/month** for typical usage
-
-**Cloud Storage:**
-
-- 5 GB storage: Free
-- 1 GB/day egress: Free
-- **Typically free** for personal projects
-
-## Development
-
-### Project Structure
-
-The backend uses Google's functions-framework-go which allows:
-
-- Local development with the same code that runs in production
-- Easy testing with standard Go testing tools
-- Portable functions that can run anywhere
-
-### Environment Variables
-
-**Backend:**
-
-- `ALLOWED_ORIGINS`: CORS allowed origins (comma-separated)
-
-**Frontend (Build Time):**
-
-- `VITE_API_URL`: Backend function URL
-
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request

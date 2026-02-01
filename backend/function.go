@@ -92,7 +92,6 @@ func checkRateLimit(ip string) bool {
 	now := time.Now()
 	cutoff := now.Add(-windowDuration)
 
-	// Clean old entries
 	var validRequests []time.Time
 	for _, t := range requestTracker[ip] {
 		if t.After(cutoff) {
@@ -158,25 +157,21 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 			baseName = fileName[idx+1:]
 		}
 
-		// Check if file is in the expected path OR matches the follower pattern directly
 		inExpectedPath := pathPattern.MatchString(fileName)
 		matchesFollowerPattern := followerPattern.MatchString(baseName)
 
 		log.Printf("[DEBUG] extractFollowers: file=%s, baseName=%s, inExpectedPath=%v, matchesFollowerPattern=%v", fileName, baseName, inExpectedPath, matchesFollowerPattern)
 
-		// Skip if not a followers file
 		if !matchesFollowerPattern && !strings.Contains(strings.ToLower(baseName), "followers") {
 			log.Printf("[DEBUG] extractFollowers: skipping %s (not a followers file)", fileName)
 			continue
 		}
 
-		// Skip following files
 		if strings.Contains(strings.ToLower(baseName), "following") {
 			log.Printf("[DEBUG] extractFollowers: skipping %s (is a following file)", fileName)
 			continue
 		}
 
-		// Prefer files in the expected path, but also accept files that match the pattern elsewhere
 		if !inExpectedPath && !matchesFollowerPattern {
 			log.Printf("[DEBUG] extractFollowers: skipping %s (not in expected path and doesn't match pattern)", fileName)
 			continue
@@ -241,9 +236,7 @@ func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
 
 func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 	var following []NonFollower
-	// Path pattern to match the expected folder structure
 	pathPattern := regexp.MustCompile(`(?i)connections/followers_and_following/`)
-	// Match following.json file
 	followingPattern := regexp.MustCompile(`(?i)^following\.json$`)
 
 	log.Printf("[DEBUG] extractFollowing: scanning %d files in zip", len(zipReader.File))
@@ -258,25 +251,21 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 		}
 		lowerBaseName := strings.ToLower(baseName)
 
-		// Check if file is in the expected path
 		inExpectedPath := pathPattern.MatchString(fileName)
 		matchesFollowingPattern := followingPattern.MatchString(baseName)
 
 		log.Printf("[DEBUG] extractFollowing: file=%s, baseName=%s, inExpectedPath=%v, matchesFollowingPattern=%v", fileName, baseName, inExpectedPath, matchesFollowingPattern)
 
-		// Skip if not a following file or doesn't contain "following" in name
 		if !matchesFollowingPattern && !strings.Contains(lowerBaseName, "following") {
 			log.Printf("[DEBUG] extractFollowing: skipping %s (not a following file)", fileName)
 			continue
 		}
 
-		// Skip followers files
 		if strings.Contains(lowerBaseName, "followers") {
 			log.Printf("[DEBUG] extractFollowing: skipping %s (is a followers file)", fileName)
 			continue
 		}
 
-		// Prefer files in the expected path, but also accept files that match the pattern elsewhere
 		if !inExpectedPath && !matchesFollowingPattern && !strings.Contains(lowerFileName, "following") {
 			log.Printf("[DEBUG] extractFollowing: skipping %s (not in expected path)", fileName)
 			continue
@@ -299,7 +288,6 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 		if err := json.Unmarshal(content, &followingData); err == nil {
 			log.Printf("[DEBUG] extractFollowing: parsed %s as FollowingData with %d relationships", fileName, len(followingData.RelationshipsFollowing))
 			for _, rel := range followingData.RelationshipsFollowing {
-				// For following.json: username is in title, string_list_data has href/timestamp
 				var username string
 				var timestamp int64
 				if len(rel.StringListData) > 0 {
@@ -308,7 +296,6 @@ func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
 					}
 					timestamp = rel.StringListData[0].Timestamp
 				}
-				// If no value in string_list_data, use title
 				if username == "" && rel.Title != "" {
 					username = rel.Title
 				}

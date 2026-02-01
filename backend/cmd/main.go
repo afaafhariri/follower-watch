@@ -1,4 +1,3 @@
-// Package main is for local development only and runs a local emulator for Cloud Functions.
 package main
 
 import (

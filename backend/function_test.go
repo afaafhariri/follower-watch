@@ -34,7 +34,6 @@ func createTestZip(t *testing.T, files map[string]string) []byte {
 }
 
 func TestAnalyzeFollowers_ValidZip(t *testing.T) {
-	// Each InstagramRelationship represents one user
 	followersData := `[
 		{"string_list_data": [{"value": "user1", "timestamp": 1234567890}]},
 		{"string_list_data": [{"value": "user2", "timestamp": 1234567891}]}
@@ -77,7 +76,6 @@ func TestAnalyzeFollowers_ValidZip(t *testing.T) {
 		t.Fatalf("Expected success, got error: %s", apiResponse.Error)
 	}
 
-	// user3 and user4 should be non-followers
 	if apiResponse.Count != 2 {
 		t.Fatalf("Expected 2 non-followers, got %d", apiResponse.Count)
 	}
