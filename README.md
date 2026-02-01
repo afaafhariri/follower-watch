@@ -1,26 +1,16 @@
 # FollowerCount
 
-A privacy-first web application that identifies Instagram users who don't follow you back. Built with Go (Cloud Functions) and React/TypeScript (MUI), deployed on Google Cloud Platform.
+A **privacy-first** web application that identifies Instagram users who don't follow you back. Data is processed entirely in RAM—nothing is ever written to disk and we never store any data.
 
-## 🔒 Privacy First
-
-- **In-Memory Processing**: All data is processed entirely in RAM—nothing is ever written to disk
-- **No Database**: We don't store any user data
-- **No Logging**: Usernames and sensitive metadata are never logged
-- **Client-Side**: Results can be downloaded as CSV, generated entirely in your browser
-
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Backend
 
 - **Go 1.21+**: High-performance Cloud Function
-- **Cloud Functions (2nd gen)**: Serverless compute with automatic scaling
-- **Functions Framework**: Google's official framework for portable functions
 
 ### Frontend
 
-- **React 18**: Modern UI framework
-- **TypeScript**: Type-safe development
+- **React** with **TypeScript**
 - **Material UI (MUI) 7**: Component library
 
 ### Infrastructure
@@ -89,12 +79,19 @@ follower-watch/
    make run
    ```
 
+   0r
+
+   ```bash
+   cd backend
+   PORT=8080 go run cmd/main.go
+   ```
+
    Frontend:
 
    ```bash
    cd frontend
    npm install
-   VITE_API_URL="http://localhost:8080" npm run dev
+   VITE_API_URL="api" npm run dev
    ```
 
 ### Running Tests
@@ -105,91 +102,7 @@ make test          # Run tests
 make test-coverage # Run with coverage
 ```
 
-## 🌐 Deployment
-
-### Prerequisites
-
-1. **Install gcloud CLI**
-
-   ```bash
-   # macOS
-   brew install google-cloud-sdk
-
-   # Or download from: https://cloud.google.com/sdk/docs/install
-   ```
-
-2. **Authenticate and set project**
-
-   ```bash
-   gcloud auth login
-   gcloud config set project YOUR_PROJECT_ID
-   ```
-
-3. **Enable required APIs**
-
-   ```bash
-   gcloud services enable cloudfunctions.googleapis.com
-   gcloud services enable cloudbuild.googleapis.com
-   gcloud services enable run.googleapis.com
-   ```
-
-### Deploy Cloud Function
-
-```bash
-./scripts/deploy.sh deploy
-```
-
-Or manually:
-
-```bash
-cd backend
-make deploy
-```
-
-### Get Function URL
-
-```bash
-./scripts/deploy.sh info
-# Or:
-cd backend && make url
-```
-
-### Deploy Frontend
-
-After deploying the backend, build the frontend with the function URL:
-
-```bash
-./scripts/deploy.sh frontend
-```
-
-Then deploy to Firebase Hosting (recommended):
-
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init hosting  # Select your project, set public dir to frontend/dist
-firebase deploy --only hosting
-```
-
-### Update CORS
-
-After deploying the frontend, update the function's CORS settings:
-
-```bash
-cd backend
-ALLOWED_ORIGINS="https://your-app.web.app" make deploy
-```
-
-### Other Commands
-
-```bash
-./scripts/deploy.sh info      # Get deployment info
-./scripts/deploy.sh logs      # View function logs
-./scripts/deploy.sh logs 100  # View last 100 logs
-./scripts/deploy.sh delete    # Delete the function
-```
-
-## 📊 How It Works
+## How It Works
 
 1. **Export Your Instagram Data**
    - Go to Instagram Settings → Your Activity → Download Your Information
@@ -205,7 +118,7 @@ ALLOWED_ORIGINS="https://your-app.web.app" make deploy
    - Sort and search through the results
    - Download as CSV if needed
 
-## 💰 Cost Estimate
+## Cost Estimate
 
 **Google Cloud Functions (2nd gen):**
 
@@ -220,7 +133,7 @@ ALLOWED_ORIGINS="https://your-app.web.app" make deploy
 - 360 MB/day bandwidth: Free
 - **Typically free** for personal projects
 
-## 🔧 Development
+## Development
 
 ### Project Structure
 
