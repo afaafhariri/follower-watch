@@ -20,8 +20,7 @@ A **privacy-first** web application that identifies Instagram users who don't fo
 ### Infrastructure
 
 - **Google Cloud Functions**: Serverless backend (2nd generation)
-- **Firebase Hosting**: (Recommended) Static site hosting with CDN
-- **Cloud Storage**: Alternative static hosting option
+- **Cloud Storage**: Static website hosting
 
 ## 📁 Project Structure
 
@@ -31,7 +30,6 @@ follower-watch/
 │   ├── function.go         # Main function handler
 │   ├── function_test.go    # Unit tests
 │   ├── go.mod              # Go modules
-│   ├── Makefile            # Build commands
 │   └── cmd/                # Local development
 │       └── main.go         # Functions framework runner
 ├── frontend/               # React application
@@ -42,9 +40,7 @@ follower-watch/
 │   │   └── App.tsx         # Main app component
 │   ├── package.json
 │   └── vite.config.ts
-├── scripts/                # Build & deploy scripts
-│   ├── deploy.sh           # GCP deployment
-│   └── dev.sh              # Local development
+├── DEPLOYMENT.md           # Deployment instructions
 └── README.md
 ```
 
@@ -52,9 +48,8 @@ follower-watch/
 
 ### Prerequisites
 
-- [Go 1.21+](https://golang.org/dl/)
 - [Node.js 18+](https://nodejs.org/)
-- [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+- [Go 1.21+](https://golang.org/dl/) (for local backend development)
 
 ### Local Development
 
@@ -64,47 +59,40 @@ follower-watch/
    cd follower-watch
    ```
 
-2. **Start the development environment**
-
-   ```bash
-   ./scripts/dev.sh
-   ```
-
-   This starts:
-   - Cloud Functions emulator on `http://localhost:8080`
-   - Frontend on `http://localhost:3000`
-
-3. **Or run separately**
-
-   Backend:
+2. **Start the backend**
 
    ```bash
    cd backend
-   make run
+   PORT=8080 FUNCTION_TARGET=AnalyzeFollowers go run cmd/main.go
    ```
 
-   0r
-
-   ```bash
-   cd backend
-   PORT=8080 go run cmd/main.go
-   ```
-
-   Frontend:
+3. **Start the frontend** (in a new terminal)
 
    ```bash
    cd frontend
    npm install
-   VITE_API_URL="api" npm run dev
+   npm run dev
    ```
+
+4. Open http://localhost:3000 in your browser
 
 ### Running Tests
 
 ```bash
 cd backend
-make test          # Run tests
-make test-coverage # Run with coverage
+go test -v ./...
 ```
+
+## 🚀 Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment instructions using Google Cloud Console.
+
+**Quick Overview:**
+
+1. Deploy backend code to **Google Cloud Functions** via the console
+2. Build frontend locally with `npm run build`
+3. Upload `dist/` folder to **Cloud Storage** bucket
+4. Configure CORS settings
 
 ## How It Works
 
@@ -120,7 +108,6 @@ make test-coverage # Run with coverage
 3. **View Results**
    - See a list of accounts that don't follow you back
    - Sort and search through the results
-   - Download as CSV if needed
 
 ## Cost Estimate
 
@@ -131,10 +118,10 @@ make test-coverage # Run with coverage
 - Timeout: 60 seconds
 - **Estimated cost: ~$0-5/month** for typical usage
 
-**Firebase Hosting:**
+**Cloud Storage:**
 
-- 10 GB storage: Free
-- 360 MB/day bandwidth: Free
+- 5 GB storage: Free
+- 1 GB/day egress: Free
 - **Typically free** for personal projects
 
 ## Development
@@ -152,10 +139,8 @@ The backend uses Google's functions-framework-go which allows:
 **Backend:**
 
 - `ALLOWED_ORIGINS`: CORS allowed origins (comma-separated)
-- `PORT`: Server port (default: 8080)
-- `FUNCTION_TARGET`: Function name for local dev
 
-**Frontend:**
+**Frontend (Build Time):**
 
 - `VITE_API_URL`: Backend function URL
 
