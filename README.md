@@ -59,11 +59,12 @@ follower-watch/
    cd follower-watch
    ```
 
-2. **Start the backend**
+2. **Set up the backend**
 
    ```bash
    cd backend
-   PORT=8080 FUNCTION_TARGET=AnalyzeFollowers go run cmd/main.go
+   cp .env.example .env   # Create your local environment file
+   go run cmd/main.go     # Start the server
    ```
 
 3. **Start the frontend** (in a new terminal)
