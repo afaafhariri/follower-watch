@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/GoogleCloudPlatform/functions-framework-go v1.8.1
-	github.com/joho/godotenv v1.5.1
 )
 
 require (
