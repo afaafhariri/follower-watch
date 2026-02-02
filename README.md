@@ -1,10 +1,6 @@
 # Follower-Watch
 
-A **privacy-first** web application that identifies Instagram users who don't follow you back. Data is processed entirely in RAM—nothing is ever written to disk and we never store any data.
-
-<div align="center">
-  <img src="frontend/public/instagram-color-svgrepo-com.png" alt="FollowerWatch Logo" width="96" height="96">
-</div>
+A **privacy-first** web application that identifies Instagram users who don't follow you back. Data is processed entirely in RAM, nothing is ever written to disk and we never store any data.
 
 ## Tech Stack
 
