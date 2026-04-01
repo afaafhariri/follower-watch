@@ -5,6 +5,12 @@ export const API_ENDPOINTS = {
   analyze: `${API_BASE_URL}/analyze`,
 } as const;
 
+export const AUTH_ENDPOINTS = {
+  login: "/auth/google/login",
+  me: "/auth/me",
+  logout: "/auth/logout",
+} as const;
+
 // Retry configuration
 export const RETRY_CONFIG = {
   maxRetries: 3,
