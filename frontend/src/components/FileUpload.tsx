@@ -268,9 +268,9 @@ export const FileUpload = ({
         }}
       >
         <Typography variant="body2">
-          <strong>🔒 Privacy First:</strong> Your data is processed entirely in
-          memory. We never store your files, usernames, or any personal
-          information on our servers.
+          <strong>🔒 Privacy First:</strong> Your uploaded files are processed
+          in memory and never stored. Analysis results are cached temporarily
+          and can be cleared at any time.
         </Typography>
       </Alert>
     </Box>

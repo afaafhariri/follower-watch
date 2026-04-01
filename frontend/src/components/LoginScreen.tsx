@@ -13,7 +13,7 @@ export const LoginScreen = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        py: 6,
+        py: 2,
       }}
     >
       <Typography variant="h6" gutterBottom>
@@ -25,8 +25,7 @@ export const LoginScreen = () => {
         sx={{ mb: 4, textAlign: "center", maxWidth: 400 }}
       >
         Sign in with your Google account to use FollowerCount. We only use
-        authentication to prevent abuse — your Instagram data is still processed
-        entirely in-memory.
+        authentication to prevent abuse — your uploaded files are never stored.
       </Typography>
       <Button
         variant="contained"

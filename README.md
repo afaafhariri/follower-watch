@@ -178,7 +178,7 @@ docker compose up --build -d
 
 3. **Upload the ZIP**
    - Drag and drop or select your Instagram data ZIP file
-   - The function processes everything in-memory
+   - Your uploaded files are processed in-memory and never stored
 
 4. **View Results**
    - See a list of accounts that don't follow you back

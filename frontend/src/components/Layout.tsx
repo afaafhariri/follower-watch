@@ -18,10 +18,11 @@ import type { UserInfo } from "../types";
 interface LayoutProps {
   children: ReactNode;
   user: UserInfo | null;
+  authenticated: boolean;
   onLogout: () => void;
 }
 
-export const Layout = ({ children, user, onLogout }: LayoutProps) => {
+export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps) => {
   return (
     <Box
       sx={{
@@ -97,37 +98,43 @@ export const Layout = ({ children, user, onLogout }: LayoutProps) => {
           py: 4,
           display: "flex",
           flexDirection: "column",
+          ...(!authenticated && { justifyContent: "center" }),
         }}
       >
-        {/* Hero Section */}
-        <Box sx={{ textAlign: "center", mb: 4 }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            sx={{
-              fontWeight: 700,
-              color: "text.primary",
-            }}
-          >
-            Find Who Doesn't Follow You Back
-          </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ maxWidth: 600, mx: "auto" }}
-          >
-            Upload your Instagram data export to instantly discover which
-            accounts you follow that don't follow you back. 100% private —
-            processed in-memory, never stored.
-          </Typography>
-        </Box>
+        {authenticated && (
+          <>
+            {/* Hero Section */}
+            <Box sx={{ textAlign: "center", mb: 4 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                gutterBottom
+                sx={{
+                  fontWeight: 700,
+                  color: "text.primary",
+                }}
+              >
+                Find Who Doesn't Follow You Back
+              </Typography>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ maxWidth: 600, mx: "auto" }}
+              >
+                Upload your Instagram data export to instantly discover which
+                accounts you follow that don't follow you back. Your uploaded
+                files are never stored — only analysis results are cached for
+                your convenience.
+              </Typography>
+            </Box>
+          </>
+        )}
 
         {/* Content Area */}
         <Paper
           elevation={0}
           sx={{
-            flex: 1,
+            ...(authenticated && { flex: 1 }),
             p: { xs: 2, sm: 4 },
             borderRadius: 3,
             border: "1px solid",
@@ -137,25 +144,26 @@ export const Layout = ({ children, user, onLogout }: LayoutProps) => {
           {children}
         </Paper>
 
-        {/* Instructions */}
-        <Box sx={{ mt: 4, textAlign: "center" }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            How to get your Instagram data:
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ maxWidth: 500, mx: "auto" }}
-          >
-            1. Go to Instagram Settings → Privacy and Security → Download Data
-            <br />
-            2. Select <b>"following and followers"</b> only and clear others
-            <br />
-            3. Request your data in JSON format and set time to "all time"
-            <br />
-            4. Download the ZIP file when ready and upload it here
-          </Typography>
-        </Box>
+        {authenticated && (
+          <Box sx={{ mt: 4, textAlign: "center" }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              How to get your Instagram data:
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ maxWidth: 500, mx: "auto" }}
+            >
+              1. Go to Instagram Settings → Privacy and Security → Download Data
+              <br />
+              2. Select <b>"following and followers"</b> only and clear others
+              <br />
+              3. Request your data in JSON format and set time to "all time"
+              <br />
+              4. Download the ZIP file when ready and upload it here
+            </Typography>
+          </Box>
+        )}
       </Container>
 
       {/* Footer */}
@@ -170,7 +178,8 @@ export const Layout = ({ children, user, onLogout }: LayoutProps) => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          Your data is processed entirely in-memory and never stored.
+          Your uploaded files are never stored. Analysis results are cached
+          temporarily and can be cleared at any time.
           <br />
           This tool is not affiliated with Instagram or Meta.
         </Typography>

@@ -151,7 +151,7 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Layout user={auth.user} onLogout={handleLogout}>
+      <Layout user={auth.user} authenticated={auth.authenticated} onLogout={handleLogout}>
         {auth.loading ? null : !auth.authenticated ? (
           <LoginScreen />
         ) : (
