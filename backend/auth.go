@@ -1,6 +1,7 @@
 package followercount
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -17,6 +18,15 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
+
+type contextKey string
+
+const userEmailKey contextKey = "userEmail"
+
+func UserEmailFromContext(ctx context.Context) string {
+	email, _ := ctx.Value(userEmailKey).(string)
+	return email
+}
 
 type UserInfo struct {
 	Email   string `json:"email"`
@@ -259,11 +269,13 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if _, err := verifySession(cookie.Value); err != nil {
+		session, err := verifySession(cookie.Value)
+		if err != nil {
 			sendError(w, http.StatusUnauthorized, "Invalid or expired session")
 			return
 		}
 
-		next(w, r)
+		ctx := context.WithValue(r.Context(), userEmailKey, session.Email)
+		next(w, r.WithContext(ctx))
 	}
 }
