@@ -1,4 +1,4 @@
-// Package followercount provides a Cloud Function for analyzing Instagram data
+// Package followercount provides the HTTP handler for analyzing Instagram data
 package followercount
 
 import (
@@ -9,26 +9,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
-	"github.com/joho/godotenv"
 )
-
-var envConfig map[string]string
-
-func init() {
-	var err error
-	envConfig, err = godotenv.Read()
-	if err != nil {
-		log.Printf("Warning: Could not read .env file: %v", err)
-		envConfig = make(map[string]string)
-	}
-	functions.HTTP("AnalyzeFollowers", AnalyzeFollowers)
-}
 
 type InstagramRelationship struct {
 	Title     string `json:"title"`
@@ -70,7 +56,7 @@ var (
 )
 
 func getEnv(key string) string {
-	return envConfig[key]
+	return os.Getenv(key)
 }
 
 func getAllowedOrigins() []string {
