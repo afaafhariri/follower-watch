@@ -1,6 +1,6 @@
 # Follower-Watch
 
-A **privacy-first** web application that identifies Instagram users who don't follow you back. Uploaded files are processed entirely in RAM and never written to disk. Analysis results are optionally cached in Redis (keyed by SHA-256 hashed email) so returning users can view their last results without re-uploading.
+A **privacy-first** web application that identifies Instagram users who don't follow you back. Analysis results are optionally cached in Redis (keyed by SHA-256 hashed email) so returning users can view their last results without re-uploading.
 
 ## Tech Stack
 
