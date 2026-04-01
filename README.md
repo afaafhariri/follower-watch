@@ -1,6 +1,6 @@
 # Follower-Watch
 
-A **privacy-first** web application that identifies Instagram users who don't follow you back. Data is processed entirely in RAM, nothing is ever written to disk and we never store any data.
+A **privacy-first** web application that identifies Instagram users who don't follow you back. Uploaded files are processed entirely in RAM and never written to disk. Analysis results are optionally cached in Redis (keyed by SHA-256 hashed email) so returning users can view their last results without re-uploading.
 
 ## Tech Stack
 
@@ -18,6 +18,7 @@ A **privacy-first** web application that identifies Instagram users who don't fo
 
 - **Docker** + **Docker Compose**: Containerized deployment
 - **Nginx**: Frontend reverse proxy
+- **Redis**: Caching layer for last analysis results (30-day TTL)
 
 ## Project Structure
 
@@ -26,6 +27,8 @@ follower-watch/
 ├── backend/                 # Go HTTP server
 │   ├── function.go         # Core analysis handler
 │   ├── auth.go             # Google OAuth & session management
+│   ├── cache.go            # Redis caching layer
+│   ├── handlers.go         # Cached result API handlers
 │   ├── function_test.go    # Unit tests
 │   ├── go.mod              # Go modules
 │   ├── Dockerfile          # Backend container
@@ -74,7 +77,13 @@ follower-watch/
    cd follower-watch
    ```
 
-2. **Set up the backend**
+2. **Start Redis** (required for caching)
+
+   ```bash
+   docker run -d --name redis -p 6379:6379 redis:alpine
+   ```
+
+3. **Set up the backend**
 
    ```bash
    cd backend
@@ -83,7 +92,7 @@ follower-watch/
    go run cmd/main.go     # Start the server
    ```
 
-3. **Start the frontend** (in a new terminal)
+4. **Start the frontend** (in a new terminal)
 
    ```bash
    cd frontend
@@ -91,7 +100,9 @@ follower-watch/
    npm run dev
    ```
 
-4. Open http://localhost:3000 in your browser
+5. Open http://localhost:3000 in your browser
+
+> **Note:** If Redis is not running, the app still works — caching is gracefully disabled.
 
 ### Running Tests
 
@@ -143,16 +154,17 @@ docker compose up --build -d
 ### Architecture
 
 ```
-┌──────────┐     ┌───────────────┐     ┌──────────────┐
-│  Browser  │────▶│  Nginx (:80)  │────▶│  Go API      │
-│           │◀────│  Frontend     │◀────│  (:8080)     │
-└──────────┘     │  Static files │     │  OAuth +     │
-                 │  /api → proxy │     │  Analysis    │
+┌──────────┐     ┌───────────────┐     ┌──────────────┐     ┌───────────┐
+│  Browser  │────▶│  Nginx (:80)  │────▶│  Go API      │────▶│  Redis    │
+│           │◀────│  Frontend     │◀────│  (:8080)     │◀────│  (:6379)  │
+└──────────┘     │  Static files │     │  OAuth +     │     │  Cache    │
+                 │  /api → proxy │     │  Analysis    │     └───────────┘
                  └───────────────┘     └──────────────┘
 ```
 
 - **Frontend container**: Nginx serves the React build and proxies `/api/*` and `/auth/*` to the backend
 - **Backend container**: Go HTTP server handles authentication and file analysis
+- **Redis container**: Stores cached analysis results per user (30-day TTL, keyed by SHA-256 hashed email)
 
 ## How It Works
 
@@ -171,6 +183,8 @@ docker compose up --build -d
 4. **View Results**
    - See a list of accounts that don't follow you back
    - Sort and search through the results
+   - Your last analysis is cached — returning users see their previous results automatically
+   - Use "Clear cached data" to remove your stored results at any time
 
 ## Environment Variables
 
@@ -185,6 +199,7 @@ docker compose up --build -d
 | `GOOGLE_REDIRECT_URL` | OAuth callback URL | Yes |
 | `SESSION_SECRET` | Key for signing session cookies | Yes |
 | `FRONTEND_URL` | URL to redirect after login | No (default: `/`) |
+| `REDIS_URL` | Redis connection URI | No (default: `redis://localhost:6379`, Docker: `redis://redis:6379`) |
 
 ### Frontend (Build Time)
 
