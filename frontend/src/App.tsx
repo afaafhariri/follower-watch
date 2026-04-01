@@ -1,18 +1,31 @@
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Alert,
+  Button,
+  Box,
+} from "@mui/material";
 import { useState, useMemo, useEffect } from "react";
 import { Layout } from "./components/Layout";
 import { FileUpload } from "./components/FileUpload";
 import { ResultsDisplay } from "./components/ResultsDisplay";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { LoginScreen } from "./components/LoginScreen";
-import { AUTH_ENDPOINTS } from "./config";
-import type { AnalysisResult, AppState, AuthState } from "./types";
+import { AUTH_ENDPOINTS, API_ENDPOINTS } from "./config";
+import type {
+  AnalysisResult,
+  AppState,
+  AuthState,
+  CachedResultResponse,
+} from "./types";
 
 const App = () => {
   const [state, setState] = useState<AppState>({
     status: "idle",
     result: null,
     error: null,
+    cachedAt: null,
   });
 
   const [auth, setAuth] = useState<AuthState>({
@@ -30,6 +43,24 @@ const App = () => {
           user: data.user || null,
           loading: false,
         });
+
+        if (data.authenticated) {
+          fetch(API_ENDPOINTS.lastResult, { credentials: "include" })
+            .then((res) => res.json())
+            .then((cached: CachedResultResponse) => {
+              if (cached.success && cached.result) {
+                setState({
+                  status: "success",
+                  result: cached.result,
+                  error: null,
+                  cachedAt: cached.cached_at ?? null,
+                });
+              }
+            })
+            .catch(() => {
+              // No cached result, stay idle
+            });
+        }
       })
       .catch(() => {
         setAuth({ authenticated: false, user: null, loading: false });
@@ -42,7 +73,7 @@ const App = () => {
       credentials: "include",
     }).then(() => {
       setAuth({ authenticated: false, user: null, loading: false });
-      setState({ status: "idle", result: null, error: null });
+      setState({ status: "idle", result: null, error: null, cachedAt: null });
     });
   };
 
@@ -93,25 +124,34 @@ const App = () => {
   );
 
   const handleUploadStart = () => {
-    setState({ status: "uploading", result: null, error: null });
+    setState({ status: "uploading", result: null, error: null, cachedAt: null });
   };
 
   const handleUploadSuccess = (result: AnalysisResult) => {
-    setState({ status: "success", result, error: null });
+    setState({ status: "success", result, error: null, cachedAt: null });
   };
 
   const handleUploadError = (error: string) => {
-    setState({ status: "error", result: null, error });
+    setState({ status: "error", result: null, error, cachedAt: null });
   };
 
   const handleReset = () => {
-    setState({ status: "idle", result: null, error: null });
+    setState({ status: "idle", result: null, error: null, cachedAt: null });
+  };
+
+  const handleClearCache = () => {
+    fetch(API_ENDPOINTS.deleteResult, {
+      method: "DELETE",
+      credentials: "include",
+    }).then(() => {
+      setState({ status: "idle", result: null, error: null, cachedAt: null });
+    });
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Layout user={auth.user} onLogout={handleLogout}>
+      <Layout user={auth.user} authenticated={auth.authenticated} onLogout={handleLogout}>
         {auth.loading ? null : !auth.authenticated ? (
           <LoginScreen />
         ) : (
@@ -130,7 +170,29 @@ const App = () => {
             )}
 
             {state.status === "success" && state.result && (
-              <ResultsDisplay result={state.result} onReset={handleReset} />
+              <>
+                {state.cachedAt && (
+                  <Box sx={{ mb: 2 }}>
+                    <Alert
+                      severity="info"
+                      action={
+                        <Button
+                          color="inherit"
+                          size="small"
+                          onClick={handleClearCache}
+                        >
+                          Clear cached data
+                        </Button>
+                      }
+                    >
+                      Showing your last analysis from{" "}
+                      {new Date(state.cachedAt * 1000).toLocaleDateString()}.
+                      Upload a new file to re-analyze.
+                    </Alert>
+                  </Box>
+                )}
+                <ResultsDisplay result={state.result} onReset={handleReset} />
+              </>
             )}
           </>
         )}

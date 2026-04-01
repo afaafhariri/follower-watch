@@ -4,6 +4,7 @@ package followercount
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -427,12 +428,20 @@ func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
 
 	nonFollowers := findNonFollowers(following, followers)
 
-	sendJSON(w, http.StatusOK, APIResponse{
+	result := APIResponse{
 		Success:        true,
 		NonFollowers:   nonFollowers,
 		TotalFollowing: totalFollowing,
 		TotalFollowers: totalFollowers,
 		Count:          len(nonFollowers),
 		Message:        "Analysis complete",
-	})
+	}
+
+	// Cache result for the logged-in user (use background context since the
+	// request context is canceled after the response is sent)
+	if email := UserEmailFromContext(r.Context()); email != "" {
+		go SaveResult(context.Background(), hashEmail(email), result)
+	}
+
+	sendJSON(w, http.StatusOK, result)
 }
