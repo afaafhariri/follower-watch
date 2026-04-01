@@ -1,13 +1,27 @@
 import type { ReactNode } from "react";
-import { Box, Container, Typography, AppBar, Toolbar, Link, Paper } from "@mui/material";
+import {
+  Box,
+  Container,
+  Typography,
+  AppBar,
+  Toolbar,
+  Link,
+  Paper,
+  Avatar,
+  Button,
+} from "@mui/material";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import GitHubIcon from "@mui/icons-material/GitHub";
+import LogoutIcon from "@mui/icons-material/Logout";
+import type { UserInfo } from "../types";
 
 interface LayoutProps {
   children: ReactNode;
+  user: UserInfo | null;
+  onLogout: () => void;
 }
 
-export const Layout = ({ children }: LayoutProps) => {
+export const Layout = ({ children, user, onLogout }: LayoutProps) => {
   return (
     <Box
       sx={{
@@ -43,6 +57,26 @@ export const Layout = ({ children }: LayoutProps) => {
           >
             FollowerCount
           </Typography>
+          {user && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mr: 2 }}>
+              <Avatar
+                src={user.picture}
+                alt={user.name}
+                sx={{ width: 32, height: 32 }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+                {user.name}
+              </Typography>
+              <Button
+                size="small"
+                onClick={onLogout}
+                startIcon={<LogoutIcon />}
+                sx={{ color: "text.secondary" }}
+              >
+                Logout
+              </Button>
+            </Box>
+          )}
           <Link
             href="https://github.com/afaafhariri/follower-watch"
             target="_blank"

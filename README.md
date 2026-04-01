@@ -6,7 +6,8 @@ A **privacy-first** web application that identifies Instagram users who don't fo
 
 ### Backend
 
-- **Go 1.21+**: High-performance Cloud Function
+- **Go 1.21+**: High-performance HTTP server
+- **Google OAuth2**: Authentication via Google accounts
 
 ### Frontend
 
@@ -15,26 +16,21 @@ A **privacy-first** web application that identifies Instagram users who don't fo
 
 ### Infrastructure
 
-- **Google Cloud Functions**: Serverless backend (2nd generation)
-- **Firebase Hosting**: Static website hosting
-
-
-The backend uses Google's functions-framework-go which allows:
-
-- Local development with the same code that runs in production
-- Easy testing with standard Go testing tools
-- Portable functions that can run anywhere
+- **Docker** + **Docker Compose**: Containerized deployment
+- **Nginx**: Frontend reverse proxy
 
 ## Project Structure
 
 ```
 follower-watch/
-├── backend/                 # Go Cloud Function
-│   ├── function.go         # Main function handler
+├── backend/                 # Go HTTP server
+│   ├── function.go         # Core analysis handler
+│   ├── auth.go             # Google OAuth & session management
 │   ├── function_test.go    # Unit tests
 │   ├── go.mod              # Go modules
-│   └── cmd/                # Local development
-│       └── main.go         # Functions framework runner
+│   ├── Dockerfile          # Backend container
+│   └── cmd/                # Server entrypoint
+│       └── main.go         # HTTP server with routing
 ├── frontend/               # React application
 │   ├── src/
 │   │   ├── components/     # React components
@@ -42,7 +38,10 @@ follower-watch/
 │   │   ├── config/         # Configuration
 │   │   └── App.tsx         # Main app component
 │   ├── package.json
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   ├── Dockerfile          # Frontend container
+│   └── nginx.conf          # Nginx configuration
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -52,6 +51,20 @@ follower-watch/
 
 - [Node.js 18+](https://nodejs.org/)
 - [Go 1.21+](https://golang.org/dl/) (for local backend development)
+- [Docker](https://docs.docker.com/get-docker/) (for containerized deployment)
+
+### Google OAuth Setup
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Go to **APIs & Services** → **Credentials**
+4. Click **Create Credentials** → **OAuth 2.0 Client IDs**
+5. Set application type to **Web application**
+6. Add authorized redirect URIs:
+   - Local: `http://localhost:8080/auth/google/callback`
+   - Docker: `http://localhost/auth/google/callback`
+   - Production: `https://yourdomain.com/auth/google/callback`
+7. Copy the **Client ID** and **Client Secret** to your `.env` file
 
 ### Local Development
 
@@ -66,6 +79,7 @@ follower-watch/
    ```bash
    cd backend
    cp .env.example .env   # Create your local environment file
+   # Edit .env with your Google OAuth credentials
    go run cmd/main.go     # Start the server
    ```
 
@@ -86,20 +100,97 @@ cd backend
 go test -v ./...
 ```
 
+## Containerized Deployment (Docker)
+
+### Quick Start
+
+1. **Create a `.env` file** in the project root:
+
+   ```env
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_REDIRECT_URL=http://localhost/auth/google/callback
+   SESSION_SECRET=your-random-secret-key
+   FRONTEND_URL=http://localhost
+   ```
+
+2. **Build and start**:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+3. Open http://localhost in your browser
+
+### Production Deployment
+
+For production, update the `.env` with your domain:
+
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URL=https://yourdomain.com/auth/google/callback
+SESSION_SECRET=a-strong-random-secret
+FRONTEND_URL=https://yourdomain.com
+```
+
+Update `ALLOWED_ORIGINS` in `docker-compose.yml` to match your domain, then:
+
+```bash
+docker compose up --build -d
+```
+
+### Architecture
+
+```
+┌──────────┐     ┌───────────────┐     ┌──────────────┐
+│  Browser  │────▶│  Nginx (:80)  │────▶│  Go API      │
+│           │◀────│  Frontend     │◀────│  (:8080)     │
+└──────────┘     │  Static files │     │  OAuth +     │
+                 │  /api → proxy │     │  Analysis    │
+                 └───────────────┘     └──────────────┘
+```
+
+- **Frontend container**: Nginx serves the React build and proxies `/api/*` and `/auth/*` to the backend
+- **Backend container**: Go HTTP server handles authentication and file analysis
+
 ## How It Works
 
-1. **Export Your Instagram Data**
+1. **Sign In**
+   - Sign in with your Google account (required to prevent abuse)
+
+2. **Export Your Instagram Data**
    - Go to Instagram Settings → Your Activity → Download Your Information
    - Select "Followers and Following", clear other selections and select download as JSON
    - Download the ZIP file
 
-2. **Upload the ZIP**
+3. **Upload the ZIP**
    - Drag and drop or select your Instagram data ZIP file
    - The function processes everything in-memory
 
-3. **View Results**
+4. **View Results**
    - See a list of accounts that don't follow you back
    - Sort and search through the results
+
+## Environment Variables
+
+### Backend
+
+| Variable | Description | Required |
+| --- | --- | --- |
+| `PORT` | Server port | No (default: `8080`) |
+| `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | No (default: `*`) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
+| `GOOGLE_REDIRECT_URL` | OAuth callback URL | Yes |
+| `SESSION_SECRET` | Key for signing session cookies | Yes |
+| `FRONTEND_URL` | URL to redirect after login | No (default: `/`) |
+
+### Frontend (Build Time)
+
+| Variable | Description | Required |
+| --- | --- | --- |
+| `VITE_API_URL` | Backend API URL prefix | No (default: `/api`) |
 
 ## License
 

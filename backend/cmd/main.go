@@ -22,9 +22,17 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/AnalyzeFollowers", followercount.AnalyzeFollowers)
-	mux.HandleFunc("/api/analyze", followercount.AnalyzeFollowers)
-	mux.HandleFunc("/analyze", followercount.AnalyzeFollowers)
+
+	// Auth routes
+	mux.HandleFunc("/auth/google/login", followercount.HandleGoogleLogin)
+	mux.HandleFunc("/auth/google/callback", followercount.HandleGoogleCallback)
+	mux.HandleFunc("/auth/me", followercount.HandleAuthMe)
+	mux.HandleFunc("/auth/logout", followercount.HandleLogout)
+
+	// Protected API routes
+	mux.HandleFunc("/AnalyzeFollowers", followercount.RequireAuth(followercount.AnalyzeFollowers))
+	mux.HandleFunc("/api/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
+	mux.HandleFunc("/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
 
 	// Serve frontend static files if the directory exists
 	staticDir := os.Getenv("STATIC_DIR")

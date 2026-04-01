@@ -6,6 +6,11 @@ services:
     environment:
       - PORT=8080
       - ALLOWED_ORIGINS=http://localhost,http://localhost:80
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost/auth/google/callback}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
     restart: unless-stopped
 
   frontend:
