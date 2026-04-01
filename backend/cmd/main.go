@@ -2,29 +2,43 @@ package main
 
 import (
 	"log"
+	"net/http"
+	"os"
 
-	_ "github.com/followercount/backend"
+	followercount "github.com/followercount/backend"
 
-	"github.com/GoogleCloudPlatform/functions-framework-go/funcframework"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	envConfig, err := godotenv.Read()
-	if err != nil {
-		log.Printf("Warning: Could not read .env file: %v", err)
-		envConfig = make(map[string]string)
+	// Load .env file for local development (optional, ignored if missing)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found, using environment variables")
 	}
 
-	port := envConfig["PORT"]
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("🚀 Starting local Cloud Functions emulator on port %s", port)
-	log.Printf("📍 Function endpoint: http://localhost:%s/", port)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/AnalyzeFollowers", followercount.AnalyzeFollowers)
+	mux.HandleFunc("/api/analyze", followercount.AnalyzeFollowers)
+	mux.HandleFunc("/analyze", followercount.AnalyzeFollowers)
 
-	if err := funcframework.Start(port); err != nil {
-		log.Fatalf("funcframework.Start: %v", err)
+	// Serve frontend static files if the directory exists
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir == "" {
+		staticDir = "../frontend/dist"
+	}
+	if info, err := os.Stat(staticDir); err == nil && info.IsDir() {
+		log.Printf("Serving static files from %s", staticDir)
+		fs := http.FileServer(http.Dir(staticDir))
+		mux.Handle("/", fs)
+	}
+
+	log.Printf("Starting server on port %s", port)
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatalf("Server failed: %v", err)
 	}
 }
