@@ -37,7 +37,7 @@ func main() {
 	mux.HandleFunc("/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
 
 	// Cached result routes
-	mux.HandleFunc("/api/last-result", followercount.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+	lastResultHandler := followercount.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			followercount.HandleGetLastResult(w, r)
@@ -48,7 +48,9 @@ func main() {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-	}))
+	})
+	mux.HandleFunc("/api/last-result", lastResultHandler)
+	mux.HandleFunc("/last-result", lastResultHandler)
 
 	// Serve frontend static files if the directory exists
 	staticDir := os.Getenv("STATIC_DIR")
