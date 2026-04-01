@@ -25,3 +25,15 @@ export interface AppState {
   result: AnalysisResult | null;
   error: string | null;
 }
+
+export interface UserInfo {
+  email: string;
+  name: string;
+  picture: string;
+}
+
+export interface AuthState {
+  authenticated: boolean;
+  user: UserInfo | null;
+  loading: boolean;
+}
