@@ -62,6 +62,7 @@ export const Layout = ({ children, user, onLogout }: LayoutProps) => {
               <Avatar
                 src={user.picture}
                 alt={user.name}
+                imgProps={{ referrerPolicy: "no-referrer" }}
                 sx={{ width: 32, height: 32 }}
               />
               <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>

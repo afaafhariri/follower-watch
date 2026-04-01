@@ -427,12 +427,19 @@ func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
 
 	nonFollowers := findNonFollowers(following, followers)
 
-	sendJSON(w, http.StatusOK, APIResponse{
+	result := APIResponse{
 		Success:        true,
 		NonFollowers:   nonFollowers,
 		TotalFollowing: totalFollowing,
 		TotalFollowers: totalFollowers,
 		Count:          len(nonFollowers),
 		Message:        "Analysis complete",
-	})
+	}
+
+	// Cache result for the logged-in user
+	if email := UserEmailFromContext(r.Context()); email != "" {
+		go SaveResult(r.Context(), hashEmail(email), result)
+	}
+
+	sendJSON(w, http.StatusOK, result)
 }

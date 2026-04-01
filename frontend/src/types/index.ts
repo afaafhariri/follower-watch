@@ -18,12 +18,20 @@ export interface ApiError {
   error: string;
 }
 
+export interface CachedResultResponse {
+  success: boolean;
+  result?: AnalysisResult;
+  cached_at?: number;
+  error?: string;
+}
+
 export type AppStatus = "idle" | "uploading" | "success" | "error";
 
 export interface AppState {
   status: AppStatus;
   result: AnalysisResult | null;
   error: string | null;
+  cachedAt: number | null;
 }
 
 export interface UserInfo {

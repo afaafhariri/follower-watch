@@ -21,6 +21,8 @@ func main() {
 		port = "8080"
 	}
 
+	followercount.InitRedis()
+
 	mux := http.NewServeMux()
 
 	// Auth routes
@@ -33,6 +35,20 @@ func main() {
 	mux.HandleFunc("/AnalyzeFollowers", followercount.RequireAuth(followercount.AnalyzeFollowers))
 	mux.HandleFunc("/api/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
 	mux.HandleFunc("/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
+
+	// Cached result routes
+	mux.HandleFunc("/api/last-result", followercount.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			followercount.HandleGetLastResult(w, r)
+		case http.MethodDelete:
+			followercount.HandleDeleteLastResult(w, r)
+		case http.MethodOptions:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
 	// Serve frontend static files if the directory exists
 	staticDir := os.Getenv("STATIC_DIR")

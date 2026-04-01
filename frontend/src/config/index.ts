@@ -3,6 +3,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 export const API_ENDPOINTS = {
   analyze: `${API_BASE_URL}/analyze`,
+  lastResult: `${API_BASE_URL}/last-result`,
+  deleteResult: `${API_BASE_URL}/last-result`,
 } as const;
 
 export const AUTH_ENDPOINTS = {
