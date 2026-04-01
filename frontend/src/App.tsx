@@ -1,10 +1,12 @@
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "./components/Layout";
 import { FileUpload } from "./components/FileUpload";
 import { ResultsDisplay } from "./components/ResultsDisplay";
 import { ErrorDisplay } from "./components/ErrorDisplay";
-import type { AnalysisResult, AppState } from "./types";
+import { LoginScreen } from "./components/LoginScreen";
+import { AUTH_ENDPOINTS } from "./config";
+import type { AnalysisResult, AppState, AuthState } from "./types";
 
 const App = () => {
   const [state, setState] = useState<AppState>({
@@ -12,6 +14,37 @@ const App = () => {
     result: null,
     error: null,
   });
+
+  const [auth, setAuth] = useState<AuthState>({
+    authenticated: false,
+    user: null,
+    loading: true,
+  });
+
+  useEffect(() => {
+    fetch(AUTH_ENDPOINTS.me, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        setAuth({
+          authenticated: data.authenticated,
+          user: data.user || null,
+          loading: false,
+        });
+      })
+      .catch(() => {
+        setAuth({ authenticated: false, user: null, loading: false });
+      });
+  }, []);
+
+  const handleLogout = () => {
+    fetch(AUTH_ENDPOINTS.logout, {
+      method: "POST",
+      credentials: "include",
+    }).then(() => {
+      setAuth({ authenticated: false, user: null, loading: false });
+      setState({ status: "idle", result: null, error: null });
+    });
+  };
 
   const theme = useMemo(
     () =>
@@ -78,22 +111,28 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Layout>
-        {state.status === "error" && state.error && (
-          <ErrorDisplay error={state.error} onRetry={handleReset} />
-        )}
+      <Layout user={auth.user} onLogout={handleLogout}>
+        {auth.loading ? null : !auth.authenticated ? (
+          <LoginScreen />
+        ) : (
+          <>
+            {state.status === "error" && state.error && (
+              <ErrorDisplay error={state.error} onRetry={handleReset} />
+            )}
 
-        {(state.status === "idle" || state.status === "uploading") && (
-          <FileUpload
-            isUploading={state.status === "uploading"}
-            onUploadStart={handleUploadStart}
-            onUploadSuccess={handleUploadSuccess}
-            onUploadError={handleUploadError}
-          />
-        )}
+            {(state.status === "idle" || state.status === "uploading") && (
+              <FileUpload
+                isUploading={state.status === "uploading"}
+                onUploadStart={handleUploadStart}
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+              />
+            )}
 
-        {state.status === "success" && state.result && (
-          <ResultsDisplay result={state.result} onReset={handleReset} />
+            {state.status === "success" && state.result && (
+              <ResultsDisplay result={state.result} onReset={handleReset} />
+            )}
+          </>
         )}
       </Layout>
     </ThemeProvider>
