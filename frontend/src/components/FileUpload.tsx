@@ -2,18 +2,26 @@ import { useCallback, useState, useRef } from "react";
 import { Box, Typography, Button, LinearProgress, Alert } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
-import { API_ENDPOINTS, UPLOAD_CONFIG, RETRY_CONFIG } from "../config";
-import type { AnalysisResult, ApiError } from "../types";
+import { UPLOAD_CONFIG, RETRY_CONFIG } from "../config";
+import type { ApiError } from "../types";
 
 interface FileUploadProps {
   isUploading: boolean;
+  apiEndpoint: string;
+  platformLabel: string;
+  gradientStart?: string;
+  gradientEnd?: string;
   onUploadStart: () => void;
-  onUploadSuccess: (result: AnalysisResult) => void;
+  onUploadSuccess: (result: unknown) => void;
   onUploadError: (error: string) => void;
 }
 
 export const FileUpload = ({
   isUploading,
+  apiEndpoint,
+  platformLabel,
+  gradientStart = "#E1306C",
+  gradientEnd = "#405DE6",
   onUploadStart,
   onUploadSuccess,
   onUploadError,
@@ -23,35 +31,30 @@ export const FileUpload = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const gradient = `linear-gradient(45deg, ${gradientStart} 30%, ${gradientEnd} 90%)`;
+  const gradientHover = `linear-gradient(45deg, color-mix(in srgb, ${gradientStart} 85%, black) 30%, color-mix(in srgb, ${gradientEnd} 85%, black) 90%)`;
+
   const validateFile = (file: File): string | null => {
     const isZip =
       file.type === "application/zip" ||
       file.type === "application/x-zip-compressed" ||
       file.name.endsWith(".zip");
 
-    if (!isZip) {
-      return "Please upload a ZIP file";
-    }
+    if (!isZip) return "Please upload a ZIP file";
 
     const maxSize = UPLOAD_CONFIG.maxFileSizeMB * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > maxSize)
       return `File too large. Maximum size is ${UPLOAD_CONFIG.maxFileSizeMB}MB`;
-    }
 
     return null;
   };
 
-  const uploadWithRetry = async (
-    file: File,
-    retryCount = 0,
-  ): Promise<AnalysisResult> => {
+  const uploadWithRetry = async (file: File, retryCount = 0): Promise<unknown> => {
     try {
-      const response = await fetch(API_ENDPOINTS.analyze, {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         body: file,
-        headers: {
-          "Content-Type": "application/zip",
-        },
+        headers: { "Content-Type": "application/zip" },
       });
 
       const data = await response.json();
@@ -61,7 +64,7 @@ export const FileUpload = ({
         throw new Error(errorData.error || "Upload failed");
       }
 
-      return data as AnalysisResult;
+      return data;
     } catch (error) {
       if (retryCount < RETRY_CONFIG.maxRetries) {
         const delay = Math.min(
@@ -100,10 +103,7 @@ export const FileUpload = ({
       const result = await uploadWithRetry(file);
       clearInterval(progressInterval);
       setUploadProgress(100);
-
-      setTimeout(() => {
-        onUploadSuccess(result);
-      }, 300);
+      setTimeout(() => onUploadSuccess(result), 300);
     } catch (error) {
       clearInterval(progressInterval);
       setUploadProgress(0);
@@ -132,29 +132,22 @@ export const FileUpload = ({
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-
       const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleUpload(files[0]);
-      }
+      if (files.length > 0) handleUpload(files[0]);
     },
-    [handleUpload],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [apiEndpoint],
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      handleUpload(files[0]);
-    }
+    if (files && files.length > 0) handleUpload(files[0]);
   };
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleClick = () => fileInputRef.current?.click();
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Dropzone */}
       <Box
         onClick={!isUploading ? handleClick : undefined}
         onDragOver={handleDragOver}
@@ -190,9 +183,7 @@ export const FileUpload = ({
 
         {isUploading ? (
           <Box>
-            <FolderZipIcon
-              sx={{ fontSize: 64, color: "primary.main", mb: 2 }}
-            />
+            <FolderZipIcon sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
             <Typography variant="h6" gutterBottom>
               Processing your data...
             </Typography>
@@ -211,8 +202,7 @@ export const FileUpload = ({
                   bgcolor: "grey.200",
                   "& .MuiLinearProgress-bar": {
                     borderRadius: 4,
-                    background:
-                      "linear-gradient(45deg, #E1306C 30%, #405DE6 90%)",
+                    background: gradient,
                   },
                 }}
               />
@@ -223,11 +213,9 @@ export const FileUpload = ({
           </Box>
         ) : (
           <Box>
-            <CloudUploadIcon
-              sx={{ fontSize: 64, color: "primary.main", mb: 2 }}
-            />
+            <CloudUploadIcon sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              Drop your Instagram data ZIP file here
+              Drop your {platformLabel} data ZIP file here
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               or click to browse
@@ -239,11 +227,8 @@ export const FileUpload = ({
               sx={{
                 mt: 2,
                 px: 4,
-                background: "linear-gradient(45deg, #E1306C 30%, #405DE6 90%)",
-                "&:hover": {
-                  background:
-                    "linear-gradient(45deg, #C1285C 30%, #3050D6 90%)",
-                },
+                background: gradient,
+                "&:hover": { background: gradientHover },
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -256,21 +241,20 @@ export const FileUpload = ({
         )}
       </Box>
 
-      {/* Security Notice */}
       <Alert
         severity="info"
         icon={false}
         sx={{
           mt: 3,
-          bgcolor: "grey.50",
+          bgcolor: "action.hover",
           border: "1px solid",
-          borderColor: "grey.200",
+          borderColor: "divider",
         }}
       >
         <Typography variant="body2">
-          <strong>🔒 Privacy First:</strong> Your uploaded files are processed
-          in memory and never stored. Analysis results are cached temporarily
-          and can be cleared at any time.
+          <strong>Privacy First:</strong> Your uploaded files are processed in
+          memory and never stored. Analysis results are cached temporarily and
+          can be cleared at any time.
         </Typography>
       </Alert>
     </Box>

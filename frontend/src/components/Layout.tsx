@@ -10,7 +10,7 @@ import {
   Avatar,
   Button,
 } from "@mui/material";
-import InstagramIcon from "@mui/icons-material/Instagram";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import LogoutIcon from "@mui/icons-material/Logout";
 import type { UserInfo } from "../types";
@@ -37,26 +37,25 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
         position="static"
         elevation={0}
         sx={{
-          bgcolor: "white",
+          bgcolor: "background.paper",
           borderBottom: "1px solid",
           borderColor: "divider",
         }}
       >
         <Toolbar>
-          <InstagramIcon sx={{ color: "primary.main", mr: 1.5 }} />
+          <AnalyticsIcon sx={{ color: "primary.main", mr: 1.5 }} />
           <Typography
             variant="h6"
             sx={{
               flexGrow: 1,
-              color: "text.primary",
-              fontWeight: 600,
+              fontWeight: 700,
               background: "linear-gradient(45deg, #E1306C 30%, #405DE6 90%)",
               backgroundClip: "text",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            FollowerCount
+            FollowerWatch
           </Typography>
           {user && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mr: 2 }}>
@@ -66,7 +65,11 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
                 imgProps={{ referrerPolicy: "no-referrer" }}
                 sx={{ width: 32, height: 32 }}
               />
-              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ display: { xs: "none", sm: "block" } }}
+              >
                 {user.name}
               </Typography>
               <Button
@@ -102,35 +105,27 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
         }}
       >
         {authenticated && (
-          <>
-            {/* Hero Section */}
-            <Box sx={{ textAlign: "center", mb: 4 }}>
-              <Typography
-                variant="h4"
-                component="h1"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  color: "text.primary",
-                }}
-              >
-                Find Who Doesn't Follow You Back
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{ maxWidth: 600, mx: "auto" }}
-              >
-                Upload your Instagram data export to instantly discover which
-                accounts you follow that don't follow you back. Your uploaded
-                files are never stored — only analysis results are cached for
-                your convenience.
-              </Typography>
-            </Box>
-          </>
+          <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{ fontWeight: 700 }}
+            >
+              Find Who Doesn't Follow You Back
+            </Typography>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ maxWidth: 600, mx: "auto" }}
+            >
+              Upload your Instagram or Facebook data export to instantly discover
+              which accounts you follow that don't follow you back. Your uploaded
+              files are never stored.
+            </Typography>
+          </Box>
         )}
 
-        {/* Content Area */}
         <Paper
           elevation={0}
           sx={{
@@ -143,27 +138,6 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
         >
           {children}
         </Paper>
-
-        {authenticated && (
-          <Box sx={{ mt: 4, textAlign: "center" }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              How to get your Instagram data:
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ maxWidth: 500, mx: "auto" }}
-            >
-              1. Go to Instagram Settings → Privacy and Security → Download Data
-              <br />
-              2. Select <b>"following and followers"</b> only and clear others
-              <br />
-              3. Request your data in JSON format and set time to "all time"
-              <br />
-              4. Download the ZIP file when ready and upload it here
-            </Typography>
-          </Box>
-        )}
       </Container>
 
       {/* Footer */}
@@ -174,14 +148,14 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
           textAlign: "center",
           borderTop: "1px solid",
           borderColor: "divider",
-          bgcolor: "white",
+          bgcolor: "background.paper",
         }}
       >
         <Typography variant="body2" color="text.secondary">
           Your uploaded files are never stored. Analysis results are cached
           temporarily and can be cleared at any time.
           <br />
-          This tool is not affiliated with Instagram or Meta.
+          This tool is not affiliated with Instagram, Facebook, or Meta.
         </Typography>
       </Box>
     </Box>

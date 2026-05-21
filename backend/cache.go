@@ -102,3 +102,61 @@ func DeleteResult(ctx context.Context, emailHash string) error {
 
 	return redisClient.Del(ctx, cacheKey(emailHash)).Err()
 }
+
+// --- Facebook cache ---
+
+func fbCacheKey(emailHash string) string {
+	return fmt.Sprintf("fb_result:%s", emailHash)
+}
+
+type FacebookCachedResult struct {
+	Result   FacebookAnalysisResult `json:"result"`
+	CachedAt int64                  `json:"cached_at"`
+}
+
+func SaveFacebookResult(ctx context.Context, emailHash string, result FacebookAnalysisResult) {
+	if redisClient == nil {
+		return
+	}
+
+	cached := FacebookCachedResult{
+		Result:   result,
+		CachedAt: time.Now().Unix(),
+	}
+
+	data, err := json.Marshal(cached)
+	if err != nil {
+		log.Printf("Failed to marshal Facebook cached result: %v", err)
+		return
+	}
+
+	if err := redisClient.Set(ctx, fbCacheKey(emailHash), data, cacheTTL).Err(); err != nil {
+		log.Printf("Failed to save Facebook result to Redis: %v", err)
+	}
+}
+
+func GetFacebookResult(ctx context.Context, emailHash string) (*FacebookCachedResult, error) {
+	if redisClient == nil {
+		return nil, fmt.Errorf("redis not available")
+	}
+
+	data, err := redisClient.Get(ctx, fbCacheKey(emailHash)).Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	var cached FacebookCachedResult
+	if err := json.Unmarshal(data, &cached); err != nil {
+		return nil, err
+	}
+
+	return &cached, nil
+}
+
+func DeleteFacebookResult(ctx context.Context, emailHash string) error {
+	if redisClient == nil {
+		return fmt.Errorf("redis not available")
+	}
+
+	return redisClient.Del(ctx, fbCacheKey(emailHash)).Err()
+}

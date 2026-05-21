@@ -45,3 +45,36 @@ export interface AuthState {
   user: UserInfo | null;
   loading: boolean;
 }
+
+// --- Facebook types ---
+
+export interface FacebookPerson {
+  name: string;
+  timestamp?: number;
+}
+
+export interface FacebookAnalysisResult {
+  success: boolean;
+  non_following_friends: FacebookPerson[];
+  non_following_pages: FacebookPerson[];
+  total_friends: number;
+  total_following: number;
+  total_followers: number;
+  friends_count: number;
+  pages_count: number;
+  message?: string;
+}
+
+export interface FacebookCachedResultResponse {
+  success: boolean;
+  result?: FacebookAnalysisResult;
+  cached_at?: number;
+  error?: string;
+}
+
+export interface FacebookAppState {
+  status: AppStatus;
+  result: FacebookAnalysisResult | null;
+  error: string | null;
+  cachedAt: number | null;
+}

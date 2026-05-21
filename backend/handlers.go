@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+// --- Facebook last-result handlers ---
+
 func HandleGetLastResult(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w, r)
 
@@ -60,6 +62,68 @@ func HandleDeleteLastResult(w http.ResponseWriter, r *http.Request) {
 
 	if err := DeleteResult(r.Context(), hashEmail(email)); err != nil {
 		sendError(w, http.StatusInternalServerError, "Failed to delete cached result")
+		return
+	}
+
+	sendJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func HandleGetFacebookLastResult(w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		sendFacebookError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	email := UserEmailFromContext(r.Context())
+	if email == "" {
+		sendFacebookError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	cached, err := GetFacebookResult(r.Context(), hashEmail(email))
+	if err != nil {
+		sendJSON(w, http.StatusOK, map[string]interface{}{
+			"success": false,
+			"error":   "no cached result",
+		})
+		return
+	}
+
+	sendJSON(w, http.StatusOK, map[string]interface{}{
+		"success":   true,
+		"result":    cached.Result,
+		"cached_at": cached.CachedAt,
+	})
+}
+
+func HandleDeleteFacebookLastResult(w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodDelete {
+		sendFacebookError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	email := UserEmailFromContext(r.Context())
+	if email == "" {
+		sendFacebookError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	if err := DeleteFacebookResult(r.Context(), hashEmail(email)); err != nil {
+		sendFacebookError(w, http.StatusInternalServerError, "Failed to delete cached result")
 		return
 	}
 
