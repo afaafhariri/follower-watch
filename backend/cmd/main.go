@@ -36,7 +36,11 @@ func main() {
 	mux.HandleFunc("/api/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
 	mux.HandleFunc("/analyze", followercount.RequireAuth(followercount.AnalyzeFollowers))
 
-	// Cached result routes
+	// Facebook analysis (both paths: /analyze/facebook for nginx-proxied, /api/analyze/facebook for direct)
+	mux.HandleFunc("/analyze/facebook", followercount.RequireAuth(followercount.AnalyzeFacebook))
+	mux.HandleFunc("/api/analyze/facebook", followercount.RequireAuth(followercount.AnalyzeFacebook))
+
+	// Instagram cached-result routes
 	lastResultHandler := followercount.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -51,6 +55,22 @@ func main() {
 	})
 	mux.HandleFunc("/api/last-result", lastResultHandler)
 	mux.HandleFunc("/last-result", lastResultHandler)
+
+	// Facebook cached result routes
+	fbLastResultHandler := followercount.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			followercount.HandleGetFacebookLastResult(w, r)
+		case http.MethodDelete:
+			followercount.HandleDeleteFacebookLastResult(w, r)
+		case http.MethodOptions:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	mux.HandleFunc("/last-result/facebook", fbLastResultHandler)
+	mux.HandleFunc("/api/last-result/facebook", fbLastResultHandler)
 
 	// Serve frontend static files if the directory exists
 	staticDir := os.Getenv("STATIC_DIR")

@@ -5,6 +5,9 @@ export const API_ENDPOINTS = {
   analyze: `${API_BASE_URL}/analyze`,
   lastResult: `${API_BASE_URL}/last-result`,
   deleteResult: `${API_BASE_URL}/last-result`,
+  analyzeFacebook: `${API_BASE_URL}/analyze/facebook`,
+  lastResultFacebook: `${API_BASE_URL}/last-result/facebook`,
+  deleteResultFacebook: `${API_BASE_URL}/last-result/facebook`,
 } as const;
 
 export const AUTH_ENDPOINTS = {
