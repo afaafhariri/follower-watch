@@ -34,6 +34,9 @@ follower-watch/
 │   ├── Dockerfile          # Backend container
 │   └── cmd/                # Server entrypoint
 │       └── main.go         # HTTP server with routing
+├── backend-headless/       # Headless watcher (no login): reads the Meta
+│                           # export from Google Drive nightly and emails
+│                           # the unfollower report — see its README.md
 ├── frontend/               # React application
 │   ├── src/
 │   │   ├── components/     # React components
@@ -185,6 +188,18 @@ docker compose up --build -d
    - Sort and search through the results
    - Your last analysis is cached — returning users see their previous results automatically
    - Use "Clear cached data" to remove your stored results at any time
+
+## Headless Watcher (automated nightly emails)
+
+Prefer zero uploads? [backend-headless/](backend-headless/README.md) is a
+standalone, no-login variant: set up Meta's recurring export to Google Drive,
+deploy the watcher with your own credentials in `.env`, and it checks Drive
+every night at 1:30 AM and emails you who unfollowed you since the last
+export. Run it with:
+
+```bash
+docker compose --profile watcher up -d watcher
+```
 
 ## Environment Variables
 
