@@ -13,12 +13,12 @@ Meta can also deliver the export **on a schedule straight to Google Drive**. Tha
 | | `backend/` (web app) | `backend-headless/` (watcher) |
 | --- | --- | --- |
 | Interface | Browser (React frontend) | Email |
-| Trigger | You upload a zip | Cron, nightly at 1:30 AM |
+| Trigger | You upload a zip | Cloud Scheduler, nightly |
 | Input | Meta export **zip** | Meta export **in Google Drive** |
 | Auth | Google sign-in (protects the public endpoint) | None — single-owner deployment, secrets in `.env` |
-| Detects | Who doesn't follow you back | Same, **plus who unfollowed / newly followed since last run** |
+| Detects | Who doesn't follow you back | Same, **plus who unfollowed / newly followed since last run** (see [Full vs incremental exports](#full-vs-incremental-exports)) |
 | State | Redis cache (optional, for returning users) | `state.json` snapshot (required — unfollower detection is a diff over time) |
-| Deploy | Docker Compose (nginx + Go + Redis) | Docker container, or serverless (e.g. Cloud Run Job + Scheduler) |
+| Deploy | Docker Compose (nginx + Go + Redis) | Cloud Run Job + Cloud Scheduler, or Docker |
 
 **Which one should you choose?**
 
@@ -51,23 +51,34 @@ Both backends parse the same files from Meta's export (`connections/followers_an
 ### The headless watcher (`backend-headless/`)
 
 ```
-Meta (daily export)                    1:30 AM nightly
-        │                                    │
-        ▼                                    ▼
-┌───────────────┐   read-only    ┌──────────────────────┐   SMTP   ┌─────────┐
-│ Google Drive  │───────────────▶│  watcher              │─────────▶│  Inbox  │
-│ meta-<date>/… │   Drive API    │  parse → diff → mail  │          └─────────┘
-└───────────────┘                └──────────┬───────────┘
+Meta (daily export)                     nightly
+        │                                  │
+        ▼                                  ▼
+┌───────────────┐   read-only    ┌───────────────────────┐   SMTP   ┌─────────┐
+│ Google Drive  │───────────────▶│  watcher               │─────────▶│  Inbox  │
+│ meta-<date>/… │   Drive API    │  parse → fold → mail   │          └─────────┘
+└───────────────┘                └──────────┬────────────┘
                                             │ load / save
                                      ┌──────▼──────┐
-                                     │ state.json  │  previous follower snapshot
+                                     │ state.json  │  known follower set
                                      └─────────────┘
 ```
 
 1. Meta's recurring export lands in your Drive as `meta-<date>/instagram-<user>-<date>/connections/followers_and_following/*.json`.
-2. Each night the watcher finds the newest `meta-*` folder via the Drive API (read-only scope, authorized once with a refresh token). Already-processed exports are skipped, so restarts never double-send.
-3. It runs the shared analysis, then **diffs the follower set against the previous run's snapshot** — that diff is what turns "current lists" into "who unfollowed you," which no single export can answer.
-4. It emails you: unfollowers, new followers, the full not-following-back list, and totals — then saves the new snapshot. The first run only records a baseline.
+2. Each night the watcher lists every `meta-*` folder via the Drive API (read-only scope, authorized once with a refresh token) and processes the ones it hasn't seen, oldest first. Already-processed exports are skipped, so restarts never double-send, and a night that failed is caught up on the next run.
+3. It runs the shared analysis and folds each export into the stored follower set — see below, because *how* it folds depends on what Meta actually sent.
+4. It emails you once: new followers, unfollowers where they can be determined, the full not-following-back list, and totals — then saves the updated set. The first run only records a baseline.
+
+#### Full vs incremental exports
+
+A one-time Meta export contains your **complete** follower list. A *recurring* export usually does not: `followers_1.json` carries only the followers gained since the previous export — often one or two entries — while `following.json` still arrives complete. Some nights a file is missing altogether.
+
+Reading an incremental export as though it were a full snapshot is catastrophic: two followers against a stored 700 looks exactly like 698 people unfollowing you at once. So each export is classified before it is used:
+
+- **Full snapshot** — the follower list replaces the stored set, and the difference between them is a real unfollower report.
+- **Incremental** — the new names are added to the stored set, and the report says nothing about unfollowers, because a feed that only ever adds names cannot show someone leaving.
+
+When the classification is borderline the export is treated as incremental: missing one night's unfollower report costs far less than inventing several hundred departures. Unfollower detection therefore happens whenever a full export arrives — either because your recurring export is configured to send everything, or because you requested a one-time export, which the watcher picks up automatically.
 
 Full setup (Google Cloud project, `-authorize` flow, SMTP, scheduling, deployment options) is in **[backend-headless/README.md](backend-headless/README.md)**.
 
@@ -83,9 +94,11 @@ follower-watch/
 │   ├── handlers.go         # Cached-result API handlers
 │   └── cmd/main.go         # HTTP server entrypoint
 ├── backend-headless/        # Watcher: no UI, no sign-in
-│   ├── main.go             # Cron scheduler + -once/-authorize flags
+│   ├── main.go             # Entrypoint: -dry-run / -authorize flags
+│   ├── pipeline.go         # One run: fetch → fold in → report → save
 │   ├── drive.go            # Google Drive traversal & download
-│   ├── analyze.go          # Shared analysis logic + snapshot diff
+│   ├── parse.go            # Export parsing (mirrors backend/instagram.go)
+│   ├── analyze.go          # Full-vs-incremental classification, set math
 │   ├── state.go            # state.json persistence
 │   ├── mailer.go           # SMTP report delivery
 │   └── authorize.go        # One-time OAuth flow → refresh token

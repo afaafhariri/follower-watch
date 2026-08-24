@@ -1,19 +1,18 @@
 // Command watcher is a headless follower-watch pipeline: it reads the latest
-// Meta export from Google Drive on a schedule, diffs followers against the
-// previous run, and emails the report. No OAuth sign-in, no Redis — all
-// configuration comes from environment variables (.env).
+// Meta export from Google Drive, works out what changed since the previous
+// run, and emails the report. No OAuth sign-in, no Redis — all configuration
+// comes from environment variables (.env).
+//
+// It runs the pipeline once and exits. Scheduling is external: Cloud Scheduler
+// in the deployed setup, or cron/launchd if you run it yourself.
 package main
 
 import (
 	"context"
 	"flag"
 	"log"
-	"os"
-	"time"
-	_ "time/tzdata"
 
 	"github.com/joho/godotenv"
-	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -23,7 +22,10 @@ func main() {
 	}
 
 	authorize := flag.Bool("authorize", false, "run the one-time OAuth flow to obtain a Google Drive refresh token")
-	once := flag.Bool("once", false, "run the pipeline immediately once and exit")
+	dryRun := flag.Bool("dry-run", false, "print the report instead of emailing it, and leave state untouched")
+	// The deployed Cloud Run job passes -once. Running once is now the only
+	// behaviour, so the flag is accepted and ignored rather than removed.
+	_ = flag.Bool("once", false, "deprecated: the pipeline always runs once and exits")
 	flag.Parse()
 
 	if *authorize {
@@ -33,37 +35,7 @@ func main() {
 		return
 	}
 
-	if *once {
-		if err := runPipeline(context.Background()); err != nil {
-			log.Fatalf("Pipeline failed: %v", err)
-		}
-		return
+	if err := runPipeline(context.Background(), *dryRun); err != nil {
+		log.Fatalf("Pipeline failed: %v", err)
 	}
-
-	schedule := os.Getenv("CRON_SCHEDULE")
-	if schedule == "" {
-		schedule = "30 1 * * *" // every night at 1:30 AM
-	}
-
-	loc := time.Local
-	if tz := os.Getenv("TZ"); tz != "" {
-		l, err := time.LoadLocation(tz)
-		if err != nil {
-			log.Fatalf("Invalid TZ %q: %v", tz, err)
-		}
-		loc = l
-	}
-
-	c := cron.New(cron.WithLocation(loc))
-	if _, err := c.AddFunc(schedule, func() {
-		log.Printf("Scheduled run starting")
-		if err := runPipeline(context.Background()); err != nil {
-			log.Printf("Pipeline failed: %v", err)
-		}
-	}); err != nil {
-		log.Fatalf("Invalid CRON_SCHEDULE %q: %v", schedule, err)
-	}
-
-	log.Printf("Follower watch scheduled (%q, timezone %s)", schedule, loc)
-	c.Run()
 }
