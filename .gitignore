@@ -27,10 +27,6 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Headless watcher state and keys
-backend-headless/data/
-service-account.json
-
 # Logs
 *.log
 npm-debug.log*
