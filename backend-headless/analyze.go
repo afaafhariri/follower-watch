@@ -1,122 +1,80 @@
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"regexp"
-	"sort"
-	"strings"
-)
+import "sort"
 
-// Same export shapes the main backend parses in backend/instagram.go.
-type instagramRelationship struct {
-	Title          string `json:"title"`
-	StringListData []struct {
-		Href      string `json:"href"`
-		Value     string `json:"value"`
-		Timestamp int64  `json:"timestamp"`
-	} `json:"string_list_data"`
-}
+// minSnapshotSize is the floor for treating an export as a full follower list.
+// It stops a handful of new followers from being mistaken for a snapshot on an
+// account that only has a few followers to begin with.
+const minSnapshotSize = 25
 
-type followingData struct {
-	RelationshipsFollowing []instagramRelationship `json:"relationships_following"`
-}
-
-type account struct {
-	Username   string
-	ProfileURL string
-}
-
-var (
-	followersFilePattern = regexp.MustCompile(`(?i)^followers(_\d+)?\.json$`)
-	followingFilePattern = regexp.MustCompile(`(?i)^following\.json$`)
-)
-
-func usernameOf(rel instagramRelationship) string {
-	// Followers files put the username in string_list_data[].value;
-	// following entries put it in title.
-	if len(rel.StringListData) > 0 && rel.StringListData[0].Value != "" {
-		return rel.StringListData[0].Value
+// isSnapshot decides whether the follower list in an export is the complete
+// set or one of Meta's incremental updates.
+//
+// A recurring export carries only the followers gained since the previous one —
+// typically one to three entries against a stored set in the hundreds — so the
+// two cases are separated by orders of magnitude and the threshold never sits
+// near the boundary.
+//
+// The bias is deliberate: when the call is close, treat the export as a delta.
+// Mistaking a delta for a snapshot reports everyone as an unfollower, while
+// mistaking a snapshot for a delta only costs one night's unfollower report.
+func isSnapshot(parsed, known int) bool {
+	if known == 0 {
+		return true // nothing to compare against; this export defines the baseline
 	}
-	return rel.Title
-}
-
-// analyzeFiles parses the followers_and_following JSON files (keyed by file
-// name) into the follower username set and the following list.
-func analyzeFiles(files map[string][]byte) (map[string]struct{}, []account, error) {
-	followers := make(map[string]struct{})
-	var following []account
-
-	for name, content := range files {
-		switch {
-		case followersFilePattern.MatchString(name):
-			var rels []instagramRelationship
-			if err := json.Unmarshal(content, &rels); err != nil {
-				var single instagramRelationship
-				if err2 := json.Unmarshal(content, &single); err2 != nil {
-					return nil, nil, fmt.Errorf("parsing %s: %w", name, err)
-				}
-				rels = []instagramRelationship{single}
-			}
-			for _, rel := range rels {
-				if u := usernameOf(rel); u != "" {
-					followers[strings.ToLower(u)] = struct{}{}
-				}
-			}
-
-		case followingFilePattern.MatchString(name):
-			var fd followingData
-			rels := fd.RelationshipsFollowing
-			if err := json.Unmarshal(content, &fd); err == nil && len(fd.RelationshipsFollowing) > 0 {
-				rels = fd.RelationshipsFollowing
-			} else {
-				var list []instagramRelationship
-				if err := json.Unmarshal(content, &list); err != nil {
-					return nil, nil, fmt.Errorf("parsing %s: %w", name, err)
-				}
-				rels = list
-			}
-			for _, rel := range rels {
-				if u := usernameOf(rel); u != "" {
-					following = append(following, account{
-						Username:   u,
-						ProfileURL: "https://instagram.com/" + u,
-					})
-				}
-			}
-		}
+	floor := minSnapshotSize
+	if known < floor {
+		floor = known
 	}
-
-	return followers, following, nil
+	threshold := known / 2
+	if threshold < floor {
+		threshold = floor
+	}
+	return parsed >= threshold
 }
 
-// nonFollowers returns accounts you follow that don't follow you back.
-func nonFollowers(following []account, followers map[string]struct{}) []account {
-	var out []account
-	for _, acc := range following {
-		if _, ok := followers[strings.ToLower(acc.Username)]; !ok {
-			out = append(out, acc)
-		}
+func setOf(usernames []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(usernames))
+	for _, u := range usernames {
+		set[u] = struct{}{}
+	}
+	return set
+}
+
+func union(a, b map[string]struct{}) map[string]struct{} {
+	out := make(map[string]struct{}, len(a)+len(b))
+	for u := range a {
+		out[u] = struct{}{}
+	}
+	for u := range b {
+		out[u] = struct{}{}
 	}
 	return out
 }
 
-// diffFollowers compares the previous follower list with the current set and
-// returns who unfollowed and who is new, sorted.
-func diffFollowers(previous []string, current map[string]struct{}) (unfollowed, gained []string) {
-	prevSet := make(map[string]struct{}, len(previous))
-	for _, u := range previous {
-		prevSet[u] = struct{}{}
+func sortedKeys(set map[string]struct{}) []string {
+	out := make([]string, 0, len(set))
+	for u := range set {
+		out = append(out, u)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// diffSets reports who is in previous but not current (removed) and who is in
+// current but not previous (added), both sorted.
+func diffSets(previous, current map[string]struct{}) (removed, added []string) {
+	for u := range previous {
 		if _, ok := current[u]; !ok {
-			unfollowed = append(unfollowed, u)
+			removed = append(removed, u)
 		}
 	}
 	for u := range current {
-		if _, ok := prevSet[u]; !ok {
-			gained = append(gained, u)
+		if _, ok := previous[u]; !ok {
+			added = append(added, u)
 		}
 	}
-	sort.Strings(unfollowed)
-	sort.Strings(gained)
-	return unfollowed, gained
+	sort.Strings(removed)
+	sort.Strings(added)
+	return removed, added
 }

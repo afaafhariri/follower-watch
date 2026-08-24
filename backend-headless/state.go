@@ -7,12 +7,19 @@ import (
 	"sort"
 )
 
-// state is the snapshot of the last processed export, used to detect
-// unfollowers between runs. Stored as JSON in DATA_DIR.
+// state is what the watcher remembers between runs. Stored as JSON in DATA_DIR.
+//
+// Followers is the best-known current follower set: replaced outright when a
+// full export arrives, added to when Meta sends an incremental one. The
+// Snapshot* fields record the last export that carried a complete follower
+// list, which is the point unfollower counts are measured from.
 type state struct {
-	LastFolder string   `json:"last_folder"`
-	UpdatedAt  string   `json:"updated_at"`
-	Followers  []string `json:"followers"`
+	LastFolder     string   `json:"last_folder"`
+	UpdatedAt      string   `json:"updated_at"`
+	Followers      []string `json:"followers"`
+	SnapshotFolder string   `json:"snapshot_folder,omitempty"`
+	SnapshotAt     string   `json:"snapshot_at,omitempty"`
+	SnapshotCount  int      `json:"snapshot_count,omitempty"`
 }
 
 func statePath() string {

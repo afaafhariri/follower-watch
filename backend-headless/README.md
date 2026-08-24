@@ -2,13 +2,17 @@
 
 A standalone, no-login version of the follower-watch backend. Instead of a web
 UI where you upload the Meta export zip, this service reads the export that
-Meta delivers to your **Google Drive** every day, diffs it against the previous
-run, and **emails you who unfollowed you** — every night at 1:30 AM by default.
+Meta delivers to your **Google Drive**, folds it into the follower set it
+remembers, and **emails you the report**.
 
-The analysis logic is the same as the main backend; only the input (Google
-Drive instead of an uploaded zip) and the output (email instead of JSON
-response) differ. There is no OAuth sign-in, no session, no Redis — everything
-is configured through `.env`.
+The analysis in `parse.go` mirrors the main backend's (`backend/instagram.go`):
+the same file names, the same JSON shapes, the same not-following-back rule.
+Only the input (Google Drive instead of an uploaded zip) and the output (email
+instead of a JSON response) differ. There is no OAuth sign-in, no session, no
+Redis; everything is configured through `.env`.
+
+The watcher runs the pipeline **once and exits**. It does not schedule itself:
+use Cloud Scheduler, cron, or launchd.
 
 ## Prerequisite: Meta → Google Drive export
 
@@ -26,8 +30,10 @@ meta-2026-Aug-11-09-04-51/
         ...
 ```
 
-The watcher always picks the **newest** `meta-*` folder and skips a run if
-that folder was already processed.
+The watcher processes every `meta-*` folder it has not seen yet, oldest first,
+and skips ones already folded in. A night that failed is therefore caught up on
+the next run rather than lost — which matters, because an export you never
+process is an export whose new followers you never learn about.
 
 ## Setup
 
@@ -73,29 +79,67 @@ Any SMTP server with STARTTLS works. For Gmail: enable 2FA, create an
 Locally:
 
 ```bash
-go run . -once     # run the pipeline right now (good for testing)
-go run .           # run forever, firing at CRON_SCHEDULE (default 1:30 AM)
+go run . -dry-run   # print the report without emailing or touching state
+go run .            # run for real: email the report, save state
 ```
+
+`-dry-run` is the safe way to check a change: it reads Drive, builds the exact
+email, prints it, and leaves everything else alone.
 
 With Docker Compose (from the repo root):
 
 ```bash
-docker compose --profile watcher up -d watcher
+docker compose --profile watcher run --rm watcher
 ```
 
-The follower snapshot is stored in `DATA_DIR/state.json` (a named volume in
-Docker) — keep it persistent, it's what unfollower detection compares against.
-Set `TZ` so 1:30 AM means *your* 1:30 AM.
+The follower set is stored in `DATA_DIR/state.json` (a named volume in Docker).
+Keep it persistent — it is what every report is measured against.
+
+### 4. Schedule it
+
+The watcher exits after one run, so something external has to start it. The
+deployed setup is a Cloud Run job triggered by Cloud Scheduler, built straight
+from this directory:
+
+```bash
+gcloud run jobs deploy follower-watch --source backend-headless --region us-central1 --command ./watcher --args=-once
+```
+
+Set the job's `--max-retries=0`: a retry after a partial failure could send the
+report twice, and a missed night is picked up by the next run anyway.
+
+## Full vs incremental exports
+
+A one-time Meta export contains your **complete** follower list. A *recurring*
+export usually does not: `followers_1.json` carries only the followers gained
+since the previous export — often one or two entries — while `following.json`
+still arrives complete, and some nights a file is missing altogether.
+
+Reading an incremental export as a full snapshot is catastrophic: two followers
+against a stored 700 looks exactly like 698 people unfollowing you at once. So
+every export is classified first:
+
+| Export | Follower set | Unfollowers |
+| --- | --- | --- |
+| **Full snapshot** | replaced by the export's list | real diff against the previous set |
+| **Incremental** | export's names added to the stored set | not reported — the feed only ever adds names |
+
+Borderline cases are treated as incremental on purpose: missing one night's
+unfollower report costs far less than inventing several hundred departures.
 
 ## What the email contains
 
-- Who **unfollowed** you since the last processed export
 - New followers since the last processed export
+- Who **unfollowed** you — when the export was a full snapshot
 - The full list of accounts that don't follow you back
-- Follower/following totals
+- Follower/following totals, and which kind of export this was
 
-The first run only records a baseline (there's nothing to diff yet);
-unfollower tracking starts with the second export.
+After an incremental export the not-following-back list is built from the last
+full snapshot plus every update since, so it can only *understate*: everyone
+listed genuinely doesn't follow you back, but someone who quietly unfollowed
+may be missing until the next full export.
+
+The first run only records a baseline; tracking starts from the next export.
 
 ## Environment variables
 
@@ -107,7 +151,5 @@ unfollower tracking starts with the second export.
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | yes | SMTP server + credentials |
 | `SMTP_PORT` | no | Default `587` |
 | `EMAIL_FROM` / `EMAIL_TO` | no | Default to `SMTP_USER` |
-| `CRON_SCHEDULE` | no | Default `30 1 * * *` (1:30 AM nightly) |
-| `TZ` | no | Timezone for the schedule, e.g. `Asia/Colombo` |
 | `DATA_DIR` | no | Where `state.json` lives (default `.`) |
 | `AUTH_PORT` | no | Port for the `-authorize` callback (default `8090`) |

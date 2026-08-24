@@ -35,9 +35,10 @@ services:
       - backend
     restart: unless-stopped
 
-  # Headless watcher: reads the Meta export from Google Drive nightly and
-  # emails the unfollower report. Opt-in via:
-  #   docker compose --profile watcher up -d watcher
+  # Headless watcher: reads the newest Meta exports from Google Drive, emails
+  # the report, and exits. It does not schedule itself — run it from cron,
+  # launchd, or a scheduled job. Opt-in via:
+  #   docker compose --profile watcher run --rm watcher
   watcher:
     build: ./backend-headless
     profiles: ["watcher"]
@@ -52,12 +53,10 @@ services:
       - SMTP_PASS=${SMTP_PASS}
       - EMAIL_FROM=${EMAIL_FROM:-}
       - EMAIL_TO=${EMAIL_TO:-}
-      - CRON_SCHEDULE=${CRON_SCHEDULE:-30 1 * * *}
-      - TZ=${TZ:-UTC}
       - DATA_DIR=/data
     volumes:
       - watcher_data:/data
-    restart: unless-stopped
+    restart: "no"
 
 volumes:
   redis_data:

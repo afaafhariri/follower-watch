@@ -41,23 +41,48 @@ func newDriveService(ctx context.Context) (*drive.Service, error) {
 	return drive.NewService(ctx, option.WithTokenSource(ts))
 }
 
-// findLatestExport returns the most recently created "meta-*" folder.
-func findLatestExport(svc *drive.Service) (*drive.File, error) {
+// listExports returns every "meta-*" export folder in Drive, oldest first.
+func listExports(svc *drive.Service) ([]*drive.File, error) {
 	list, err := svc.Files.List().
 		Q(fmt.Sprintf("mimeType='%s' and name contains 'meta' and trashed=false", folderMimeType)).
-		OrderBy("createdTime desc").
+		OrderBy("createdTime").
 		Fields("files(id,name,createdTime)").
 		PageSize(50).
 		Do()
 	if err != nil {
 		return nil, fmt.Errorf("listing Drive folders: %w", err)
 	}
+	var exports []*drive.File
 	for _, f := range list.Files {
 		if strings.HasPrefix(strings.ToLower(f.Name), "meta-") {
-			return f, nil
+			exports = append(exports, f)
 		}
 	}
-	return nil, fmt.Errorf("no 'meta-*' export folder found in Drive")
+	if len(exports) == 0 {
+		return nil, fmt.Errorf("no 'meta-*' export folder found in Drive")
+	}
+	return exports, nil
+}
+
+// exportsToProcess returns the exports not yet folded into the state, oldest
+// first.
+//
+// Processing every unseen export matters for an incremental feed: each one
+// carries only the followers gained since the previous export, so skipping a
+// night drops those people from the follower set for good. A run that failed
+// (or a paused schedule) is caught up on the next run instead.
+func exportsToProcess(all []*drive.File, prev *state) []*drive.File {
+	if prev == nil || prev.LastFolder == "" {
+		return all
+	}
+	for i, f := range all {
+		if f.Name == prev.LastFolder {
+			return all[i+1:]
+		}
+	}
+	// The last processed export has aged out of Drive, so everything still
+	// there postdates the stored state.
+	return all
 }
 
 // childFolder finds a sub-folder of parentID whose name contains needle.
@@ -105,7 +130,7 @@ func fetchFollowerFiles(svc *drive.Service, exportID string) (map[string][]byte,
 
 	files := make(map[string][]byte)
 	for _, f := range list.Files {
-		if !followersFilePattern.MatchString(f.Name) && !followingFilePattern.MatchString(f.Name) {
+		if !isFollowersFile(f.Name) && !isFollowingFile(f.Name) {
 			continue
 		}
 		content, err := downloadFile(svc, f.Id)
