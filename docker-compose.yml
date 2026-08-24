@@ -35,29 +35,5 @@ services:
       - backend
     restart: unless-stopped
 
-  # Headless watcher: reads the newest Meta exports from Google Drive, emails
-  # the report, and exits. It does not schedule itself — run it from cron,
-  # launchd, or a scheduled job. Opt-in via:
-  #   docker compose --profile watcher run --rm watcher
-  watcher:
-    build: ./backend-headless
-    profiles: ["watcher"]
-    environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN:-}
-      - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE:-}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - EMAIL_FROM=${EMAIL_FROM:-}
-      - EMAIL_TO=${EMAIL_TO:-}
-      - DATA_DIR=/data
-    volumes:
-      - watcher_data:/data
-    restart: "no"
-
 volumes:
   redis_data:
-  watcher_data:
