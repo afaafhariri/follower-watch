@@ -1,20 +1,18 @@
-import {
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-  Alert,
-  Button,
-  Box,
-} from "@mui/material";
+import { ThemeProvider, CssBaseline, Box } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { useState, useMemo, useEffect } from "react";
-import { Layout } from "./components/Layout";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { Layout, type NavItem } from "./components/Layout";
 import { FileUpload } from "./components/FileUpload";
-import { ResultsDisplay } from "./components/ResultsDisplay";
+import { ResultsDisplay, type TabKey } from "./components/ResultsDisplay";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { ExportGuide } from "./components/ExportGuide";
 import { LoginScreen } from "./components/LoginScreen";
+import { ArchiveBar } from "./components/ArchiveBar";
+import { InfoSidebar } from "./components/InfoSidebar";
+import { CacheCapsule, HeroIntro, HeroShell, IntroCopy, StatCards } from "./components/Hero";
+import { useExportUpload } from "./hooks/useExportUpload";
 import { AUTH_ENDPOINTS, API_ENDPOINTS } from "./config";
+import { createAppTheme } from "./theme";
 import type {
   AnalysisResult,
   AppState,
@@ -22,19 +20,38 @@ import type {
   CachedResultResponse,
 } from "./types";
 
-const INSTAGRAM_GRADIENT_START = "#E1306C";
-const INSTAGRAM_GRADIENT_END = "#405DE6";
-
 const initialInstagramState: AppState = {
   status: "idle",
   result: null,
   error: null,
   cachedAt: null,
+  upload: null,
 };
+
+const scrollToId = (id: string) =>
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+// Main column + info sidebar, stacked below lg
+const Workspace = ({ children }: { children: ReactNode }) => (
+  <Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 8fr) minmax(0, 4fr)" },
+      gap: 3,
+      alignItems: "start",
+    }}
+  >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>{children}</Box>
+    <InfoSidebar />
+  </Box>
+);
 
 const App = () => {
   const [instagramState, setInstagramState] =
     useState<AppState>(initialInstagramState);
+  const [activeTab, setActiveTab] = useState<TabKey>("non_followers");
+  const [uploadingName, setUploadingName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [auth, setAuth] = useState<AuthState>({
     authenticated: false,
@@ -42,7 +59,7 @@ const App = () => {
     loading: true,
   });
 
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)", { noSsr: true });
 
   useEffect(() => {
     fetch(AUTH_ENDPOINTS.me, { credentials: "include" })
@@ -65,6 +82,7 @@ const App = () => {
                   result: cached.result,
                   error: null,
                   cachedAt: cached.cached_at ?? null,
+                  upload: null,
                 });
               }
             })
@@ -86,58 +104,31 @@ const App = () => {
   };
 
   const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? "dark" : "light",
-          primary: { main: "#E1306C" },
-          secondary: { main: "#405DE6" },
-          ...(prefersDarkMode
-            ? {
-                background: { default: "#0d0d1a", paper: "#141428" },
-              }
-            : {
-                background: { default: "#fafafa", paper: "#ffffff" },
-              }),
-        },
-        typography: {
-          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-          h4: { fontWeight: 600 },
-        },
-        shape: { borderRadius: 12 },
-        components: {
-          MuiButton: {
-            styleOverrides: { root: { textTransform: "none", fontWeight: 500 } },
-          },
-          MuiPaper: {
-            styleOverrides: {
-              root: {
-                boxShadow: prefersDarkMode
-                  ? "0 2px 12px rgba(0,0,0,0.4)"
-                  : "0 2px 12px rgba(0,0,0,0.08)",
-              },
-            },
-          },
-        },
-      }),
+    () => createAppTheme(prefersDarkMode ? "dark" : "light"),
     [prefersDarkMode],
   );
 
   // --- Instagram handlers ---
-  const handleInstagramUploadStart = () =>
-    setInstagramState({ status: "uploading", result: null, error: null, cachedAt: null });
+  const { upload, progress } = useExportUpload(API_ENDPOINTS.analyze, {
+    onStart: (file) => {
+      setUploadingName(file.name);
+      setInstagramState({ ...initialInstagramState, status: "uploading" });
+    },
+    onSuccess: (raw, info) => {
+      setActiveTab("non_followers");
+      setInstagramState({
+        status: "success",
+        result: raw as AnalysisResult,
+        error: null,
+        cachedAt: null,
+        upload: info,
+      });
+    },
+    onError: (error) =>
+      setInstagramState({ ...initialInstagramState, status: "error", error }),
+  });
 
-  const handleInstagramUploadSuccess = (raw: unknown) => {
-    setInstagramState({
-      status: "success",
-      result: raw as AnalysisResult,
-      error: null,
-      cachedAt: null,
-    });
-  };
-
-  const handleInstagramUploadError = (error: string) =>
-    setInstagramState({ status: "error", result: null, error, cachedAt: null });
+  const pickFile = () => fileInputRef.current?.click();
 
   const handleInstagramReset = () =>
     setInstagramState(initialInstagramState);
@@ -148,55 +139,79 @@ const App = () => {
     );
   };
 
+  const s = instagramState;
+  const hasResult = s.status === "success" && s.result !== null;
+
+  const goToTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    scrollToId("results");
+  };
+
+  const nav: NavItem[] | undefined = hasResult
+    ? [
+        { label: "Overview", onClick: () => scrollToId("overview") },
+        { label: "Don't Follow Back", active: activeTab === "non_followers", onClick: () => goToTab("non_followers") },
+        { label: "Follow Requests", active: activeTab === "follow_requests", onClick: () => goToTab("follow_requests") },
+        { label: "Unfollowed by You", active: activeTab === "unfollowed", onClick: () => goToTab("unfollowed") },
+        { label: "How It Works", onClick: () => scrollToId("how-it-works") },
+      ]
+    : undefined;
+
   const renderInstagramContent = () => {
-    const s = instagramState;
+    if (s.status === "success" && s.result) {
+      return (
+        <>
+          <HeroShell id="overview">
+            <HeroIntro
+              title="Instagram Account Diff & Audit"
+              aside={s.cachedAt ? <CacheCapsule cachedAt={s.cachedAt} /> : undefined}
+            >
+              <IntroCopy />
+            </HeroIntro>
+            <StatCards
+              result={s.result}
+              analyzedAt={s.cachedAt ? new Date(s.cachedAt * 1000) : new Date()}
+            />
+          </HeroShell>
+          <ArchiveBar
+            upload={s.upload}
+            cachedAt={s.cachedAt}
+            onPickFile={pickFile}
+            onDropFile={upload}
+            onClearCache={handleClearInstagramCache}
+          />
+          <Workspace>
+            <ResultsDisplay result={s.result} activeTab={activeTab} onTabChange={setActiveTab} />
+          </Workspace>
+        </>
+      );
+    }
+
     return (
       <>
-        {s.status === "error" && s.error && (
-          <ErrorDisplay error={s.error} onRetry={handleInstagramReset} />
-        )}
-
-        {(s.status === "idle" || s.status === "uploading") && (
-          <>
-            <FileUpload
-              isUploading={s.status === "uploading"}
-              apiEndpoint={API_ENDPOINTS.analyze}
-              platformLabel="Instagram"
-              gradientStart={INSTAGRAM_GRADIENT_START}
-              gradientEnd={INSTAGRAM_GRADIENT_END}
-              onUploadStart={handleInstagramUploadStart}
-              onUploadSuccess={handleInstagramUploadSuccess}
-              onUploadError={handleInstagramUploadError}
-            />
-            <ExportGuide />
-          </>
-        )}
-
-        {s.status === "success" && s.result && (
-          <>
-            {s.cachedAt && (
-              <Box sx={{ mb: 2 }}>
-                <Alert
-                  severity="info"
-                  action={
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={handleClearInstagramCache}
-                    >
-                      Clear cached data
-                    </Button>
-                  }
-                >
-                  Showing your last Instagram analysis from{" "}
-                  {new Date(s.cachedAt * 1000).toLocaleDateString()}. Upload a
-                  new file to re-analyze.
-                </Alert>
-              </Box>
-            )}
-            <ResultsDisplay result={s.result} onReset={handleInstagramReset} />
-          </>
-        )}
+        <HeroShell>
+          <HeroIntro title="Find who doesn't follow you back">
+            <IntroCopy />
+          </HeroIntro>
+        </HeroShell>
+        <Workspace>
+          {s.status === "error" && s.error ? (
+            <>
+              <ErrorDisplay error={s.error} onRetry={handleInstagramReset} />
+              <ExportGuide title="How to export your data correctly" />
+            </>
+          ) : (
+            <>
+              <FileUpload
+                isUploading={s.status === "uploading"}
+                progress={progress}
+                fileName={uploadingName}
+                onFile={upload}
+              />
+              <ExportGuide />
+            </>
+          )}
+        </Workspace>
       </>
     );
   };
@@ -204,9 +219,21 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip,application/x-zip-compressed"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) upload(file);
+          e.target.value = "";
+        }}
+      />
       <Layout
         user={auth.user}
-        authenticated={auth.authenticated}
+        nav={nav}
+        onUpload={auth.authenticated && s.status !== "uploading" ? pickFile : undefined}
         onLogout={handleLogout}
       >
         {auth.loading ? null : !auth.authenticated ? (

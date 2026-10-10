@@ -53,11 +53,19 @@ export interface CachedResultResponse {
 
 export type AppStatus = "idle" | "uploading" | "success" | "error";
 
+// The file behind a result analyzed in this session (not known for cached results)
+export interface UploadInfo {
+  name: string;
+  size: number;
+  durationMs: number;
+}
+
 export interface AppState {
   status: AppStatus;
   result: AnalysisResult | null;
   error: string | null;
   cachedAt: number | null;
+  upload: UploadInfo | null;
 }
 
 export interface UserInfo {

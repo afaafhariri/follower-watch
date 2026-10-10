@@ -1,266 +1,139 @@
-import { useCallback, useState, useRef } from "react";
-import { Box, Typography, Button, LinearProgress, Alert } from "@mui/material";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import FolderZipIcon from "@mui/icons-material/FolderZip";
-import { UPLOAD_CONFIG, RETRY_CONFIG } from "../config";
-import type { ApiError } from "../types";
+import { useRef, useState } from "react";
+import { Box, Button, LinearProgress, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
+import { UPLOAD_CONFIG } from "../config";
+import { BRAND_GRADIENT } from "../theme";
+import { FileTag, Mono, gradientButtonSx } from "./ui";
 
 interface FileUploadProps {
   isUploading: boolean;
-  apiEndpoint: string;
-  platformLabel: string;
-  gradientStart?: string;
-  gradientEnd?: string;
-  onUploadStart: () => void;
-  onUploadSuccess: (result: unknown) => void;
-  onUploadError: (error: string) => void;
+  progress: number;
+  fileName: string | null;
+  onFile: (file: File) => void;
 }
 
-export const FileUpload = ({
-  isUploading,
-  apiEndpoint,
-  platformLabel,
-  gradientStart = "#E1306C",
-  gradientEnd = "#405DE6",
-  onUploadStart,
-  onUploadSuccess,
-  onUploadError,
-}: FileUploadProps) => {
+export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const gradient = `linear-gradient(45deg, ${gradientStart} 30%, ${gradientEnd} 90%)`;
-  const gradientHover = `linear-gradient(45deg, color-mix(in srgb, ${gradientStart} 85%, black) 30%, color-mix(in srgb, ${gradientEnd} 85%, black) 90%)`;
-
-  const validateFile = (file: File): string | null => {
-    const isZip =
-      file.type === "application/zip" ||
-      file.type === "application/x-zip-compressed" ||
-      file.name.endsWith(".zip");
-
-    if (!isZip) return "Please upload a ZIP file";
-
-    const maxSize = UPLOAD_CONFIG.maxFileSizeMB * 1024 * 1024;
-    if (file.size > maxSize)
-      return `File too large. Maximum size is ${UPLOAD_CONFIG.maxFileSizeMB}MB`;
-
-    return null;
-  };
-
-  const uploadWithRetry = async (file: File, retryCount = 0): Promise<unknown> => {
-    try {
-      const response = await fetch(apiEndpoint, {
-        method: "POST",
-        body: file,
-        headers: { "Content-Type": "application/zip" },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorData = data as ApiError;
-        const error = new Error(errorData.error || "Upload failed");
-        // 4xx means the file itself was rejected; retrying won't help
-        if (response.status < 500) error.name = "ClientError";
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      const retryable = !(error instanceof Error && error.name === "ClientError");
-      if (retryable && retryCount < RETRY_CONFIG.maxRetries) {
-        const delay = Math.min(
-          RETRY_CONFIG.baseDelay * Math.pow(2, retryCount),
-          RETRY_CONFIG.maxDelay,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return uploadWithRetry(file, retryCount + 1);
-      }
-      throw error;
-    }
-  };
-
-  const handleUpload = async (file: File) => {
-    const validationError = validateFile(file);
-    if (validationError) {
-      onUploadError(validationError);
-      return;
-    }
-
-    setSelectedFile(file);
-    onUploadStart();
-    setUploadProgress(0);
-
-    const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
-
-    try {
-      const result = await uploadWithRetry(file);
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      setTimeout(() => onUploadSuccess(result), 300);
-    } catch (error) {
-      clearInterval(progressInterval);
-      setUploadProgress(0);
-      onUploadError(
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred. Please try again.",
-      );
-    }
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(false);
-      const files = e.dataTransfer.files;
-      if (files.length > 0) handleUpload(files[0]);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiEndpoint],
-  );
+    if (isUploading) return;
+    const file = e.dataTransfer.files[0];
+    if (file) onFile(file);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) handleUpload(files[0]);
+    const file = e.target.files?.[0];
+    if (file) onFile(file);
+    // Allow picking the same file again after an error
+    e.target.value = "";
   };
 
   const handleClick = () => fileInputRef.current?.click();
 
   return (
-    <Box sx={{ width: "100%" }}>
-      <Box
-        onClick={!isUploading ? handleClick : undefined}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        sx={{
-          border: "2px dashed",
-          borderColor: isDragOver
-            ? "primary.main"
-            : isUploading
-              ? "grey.300"
-              : "grey.400",
-          borderRadius: 3,
-          p: 6,
-          textAlign: "center",
-          cursor: isUploading ? "default" : "pointer",
-          transition: "all 0.2s ease",
-          bgcolor: isDragOver ? "action.hover" : "transparent",
-          "&:hover": {
-            borderColor: isUploading ? "grey.300" : "primary.main",
-            bgcolor: isUploading ? "transparent" : "action.hover",
-          },
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".zip,application/zip,application/x-zip-compressed"
-          onChange={handleFileSelect}
-          style={{ display: "none" }}
-          disabled={isUploading}
-        />
+    <Box
+      onClick={!isUploading ? handleClick : undefined}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+      }}
+      onDrop={handleDrop}
+      sx={(t) => ({
+        border: "2px dashed",
+        borderColor: isDragOver ? t.palette.secondary.main : alpha(t.palette.primary.main, 0.55),
+        borderRadius: "16px",
+        px: { xs: 2, sm: 4 },
+        py: { xs: 4, sm: 6 },
+        textAlign: "center",
+        cursor: isUploading ? "default" : "pointer",
+        transition: "border-color .2s, background-color .2s",
+        bgcolor: isDragOver ? alpha(t.palette.primary.main, 0.08) : alpha(t.palette.surface.card, 0.4),
+        "&:hover": isUploading
+          ? undefined
+          : { borderColor: t.palette.secondary.main, bgcolor: alpha(t.palette.primary.main, 0.05) },
+      })}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip,application/x-zip-compressed"
+        onChange={handleFileSelect}
+        style={{ display: "none" }}
+        disabled={isUploading}
+      />
 
-        {isUploading ? (
-          <Box>
-            <FolderZipIcon sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Processing your data...
-            </Typography>
-            {selectedFile && (
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {selectedFile.name}
-              </Typography>
-            )}
-            <Box sx={{ width: "100%", maxWidth: 400, mx: "auto", mt: 2 }}>
-              <LinearProgress
-                variant="determinate"
-                value={uploadProgress}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  bgcolor: "grey.200",
-                  "& .MuiLinearProgress-bar": {
-                    borderRadius: 4,
-                    background: gradient,
-                  },
-                }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {uploadProgress < 100 ? "Analyzing..." : "Complete!"}
-              </Typography>
-            </Box>
-          </Box>
-        ) : (
-          <Box>
-            <CloudUploadIcon sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Drop your {platformLabel} data ZIP file here
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              or click to browse
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<CloudUploadIcon />}
-              sx={{
-                mt: 2,
-                px: 4,
-                background: gradient,
-                "&:hover": { background: gradientHover },
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClick();
-              }}
-            >
-              Select ZIP File
-            </Button>
-          </Box>
-        )}
+      <Box
+        sx={(t) => ({
+          width: 64,
+          height: 64,
+          mx: "auto",
+          mb: 2,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          color: "accent.primary",
+          bgcolor: alpha(t.palette.primary.main, 0.14),
+          boxShadow: `0 0 32px ${alpha(t.palette.primary.main, 0.35)}`,
+        })}
+      >
+        {isUploading ? <FolderZipOutlinedIcon sx={{ fontSize: 32 }} /> : <CloudUploadOutlinedIcon sx={{ fontSize: 32 }} />}
       </Box>
 
-      <Alert
-        severity="info"
-        icon={false}
-        sx={{
-          mt: 3,
-          bgcolor: "action.hover",
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Typography variant="body2">
-          <strong>Privacy First:</strong> Your uploaded files are processed in
-          memory and never stored. Analysis results are cached temporarily and
-          can be cleared at any time.
-        </Typography>
-      </Alert>
+      {isUploading ? (
+        <Box>
+          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>Processing your data…</Typography>
+          {fileName && <Mono sx={{ color: "text.muted" }}>{fileName}</Mono>}
+          <Box sx={{ width: "100%", maxWidth: 400, mx: "auto", mt: 2.5 }}>
+            <LinearProgress
+              variant="determinate"
+              value={progress}
+              aria-label="Upload progress"
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                bgcolor: "surface.high",
+                "& .MuiLinearProgress-bar": { borderRadius: 4, background: BRAND_GRADIENT },
+              }}
+            />
+            <Mono sx={{ display: "block", mt: 1, color: "text.secondary" }}>
+              {progress < 100 ? "Analyzing…" : "Complete!"}
+            </Mono>
+          </Box>
+        </Box>
+      ) : (
+        <Box>
+          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>Drop your Instagram export ZIP here</Typography>
+          <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
+            or click to browse • up to {UPLOAD_CONFIG.maxFileSizeMB} MB • no need to unzip
+          </Typography>
+          <Button
+            size="large"
+            startIcon={<CloudUploadOutlinedIcon />}
+            sx={[gradientButtonSx, { mt: 3 }]}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick();
+            }}
+          >
+            Select ZIP file
+          </Button>
+          <Box sx={{ mt: 3, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1 }}>
+            <FileTag>connections/followers_and_following/</FileTag>
+            <FileTag>followers_*.json</FileTag>
+            <FileTag>following.json</FileTag>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

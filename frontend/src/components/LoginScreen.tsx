@@ -1,6 +1,8 @@
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import { AUTH_ENDPOINTS } from "../config";
+import { HeroIntro, HeroShell, IntroCopy } from "./Hero";
+import { gradientButtonSx } from "./ui";
 
 export const LoginScreen = () => {
   const handleLogin = () => {
@@ -8,41 +10,23 @@ export const LoginScreen = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        py: 2,
-      }}
-    >
-      <Typography variant="h6" gutterBottom>
-        Sign in to continue
-      </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 4, textAlign: "center", maxWidth: 400 }}
-      >
-        Sign in with your Google account to use FollowerCount. We only use
-        authentication to prevent abuse — your uploaded files are never stored.
-      </Typography>
-      <Button
-        variant="contained"
-        size="large"
-        startIcon={<GoogleIcon />}
-        onClick={handleLogin}
-        sx={{
-          px: 4,
-          py: 1.5,
-          background: "linear-gradient(45deg, #E1306C 30%, #405DE6 90%)",
-          "&:hover": {
-            background: "linear-gradient(45deg, #C1285C 30%, #3050D6 90%)",
-          },
-        }}
-      >
-        Sign in with Google
-      </Button>
+    <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+      <Box sx={{ width: "100%", maxWidth: 880, mx: "auto" }}>
+        <HeroShell>
+          <HeroIntro title="Find who doesn't follow you back">
+            <IntroCopy />
+          </HeroIntro>
+          <Box>
+            <Button size="large" startIcon={<GoogleIcon />} onClick={handleLogin} sx={gradientButtonSx}>
+              Sign in with Google
+            </Button>
+            <Typography sx={{ mt: 1.5, fontSize: 12, color: "text.muted", maxWidth: 520 }}>
+              Sign-in is only used to prevent abuse and to let you come back to your last result. You
+              never enter your Instagram password.
+            </Typography>
+          </Box>
+        </HeroShell>
+      </Box>
     </Box>
   );
 };
