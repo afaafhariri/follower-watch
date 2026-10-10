@@ -119,7 +119,7 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
               color="text.secondary"
               sx={{ maxWidth: 600, mx: "auto" }}
             >
-              Upload your Instagram or Facebook data export to instantly discover
+              Upload your Instagram data export to instantly discover
               which accounts you follow that don't follow you back. Your uploaded
               files are never stored.
             </Typography>
@@ -155,7 +155,7 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
           Your uploaded files are never stored. Analysis results are cached
           temporarily and can be cleared at any time.
           <br />
-          This tool is not affiliated with Instagram, Facebook, or Meta.
+          This tool is not affiliated with Instagram or Meta.
         </Typography>
       </Box>
     </Box>

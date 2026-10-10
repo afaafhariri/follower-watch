@@ -5,18 +5,13 @@ import {
   Alert,
   Button,
   Box,
-  Tabs,
-  Tab,
   Typography,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import InstagramIcon from "@mui/icons-material/Instagram";
-import FacebookIcon from "@mui/icons-material/Facebook";
 import { useState, useMemo, useEffect } from "react";
 import { Layout } from "./components/Layout";
 import { FileUpload } from "./components/FileUpload";
 import { ResultsDisplay } from "./components/ResultsDisplay";
-import { FacebookResultsDisplay } from "./components/FacebookResultsDisplay";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { LoginScreen } from "./components/LoginScreen";
 import { AUTH_ENDPOINTS, API_ENDPOINTS } from "./config";
@@ -25,17 +20,10 @@ import type {
   AppState,
   AuthState,
   CachedResultResponse,
-  FacebookAnalysisResult,
-  FacebookAppState,
-  FacebookCachedResultResponse,
 } from "./types";
-
-type Platform = "instagram" | "facebook";
 
 const INSTAGRAM_GRADIENT_START = "#E1306C";
 const INSTAGRAM_GRADIENT_END = "#405DE6";
-const FACEBOOK_GRADIENT_START = "#1877F2";
-const FACEBOOK_GRADIENT_END = "#4267B2";
 
 const initialInstagramState: AppState = {
   status: "idle",
@@ -44,14 +32,6 @@ const initialInstagramState: AppState = {
   cachedAt: null,
 };
 
-const initialFacebookState: FacebookAppState = {
-  status: "idle",
-  result: null,
-  error: null,
-  cachedAt: null,
-};
-
-// Platform-specific instructions
 const InstagramInstructions = () => (
   <Box sx={{ mt: 3, textAlign: "center" }}>
     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -69,30 +49,9 @@ const InstagramInstructions = () => (
   </Box>
 );
 
-const FacebookInstructions = () => (
-  <Box sx={{ mt: 3, textAlign: "center" }}>
-    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-      How to get your Facebook data:
-    </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 500, mx: "auto" }}>
-      1. Go to Facebook Settings → Your Facebook Information → Download Your Information
-      <br />
-      2. Select <strong>"Followers and Following"</strong> and <strong>"Friends"</strong>
-      <br />
-      3. Set format to <strong>JSON</strong> and date range to "All time"
-      <br />
-      4. Download the ZIP file when ready and upload it here
-    </Typography>
-  </Box>
-);
-
 const App = () => {
-  const [activePlatform, setActivePlatform] = useState<Platform>("instagram");
-
   const [instagramState, setInstagramState] =
     useState<AppState>(initialInstagramState);
-  const [facebookState, setFacebookState] =
-    useState<FacebookAppState>(initialFacebookState);
 
   const [auth, setAuth] = useState<AuthState>({
     authenticated: false,
@@ -127,21 +86,6 @@ const App = () => {
               }
             })
             .catch(() => {});
-
-          // Load Facebook cached result
-          fetch(API_ENDPOINTS.lastResultFacebook, { credentials: "include" })
-            .then((res) => res.json())
-            .then((cached: FacebookCachedResultResponse) => {
-              if (cached.success && cached.result) {
-                setFacebookState({
-                  status: "success",
-                  result: cached.result,
-                  error: null,
-                  cachedAt: cached.cached_at ?? null,
-                });
-              }
-            })
-            .catch(() => {});
         }
       })
       .catch(() => {
@@ -154,7 +98,6 @@ const App = () => {
       () => {
         setAuth({ authenticated: false, user: null, loading: false });
         setInstagramState(initialInstagramState);
-        setFacebookState(initialFacebookState);
       },
     );
   };
@@ -222,32 +165,6 @@ const App = () => {
     );
   };
 
-  // --- Facebook handlers ---
-  const handleFacebookUploadStart = () =>
-    setFacebookState({ status: "uploading", result: null, error: null, cachedAt: null });
-
-  const handleFacebookUploadSuccess = (raw: unknown) => {
-    setFacebookState({
-      status: "success",
-      result: raw as FacebookAnalysisResult,
-      error: null,
-      cachedAt: null,
-    });
-  };
-
-  const handleFacebookUploadError = (error: string) =>
-    setFacebookState({ status: "error", result: null, error, cachedAt: null });
-
-  const handleFacebookReset = () =>
-    setFacebookState(initialFacebookState);
-
-  const handleClearFacebookCache = () => {
-    fetch(API_ENDPOINTS.deleteResultFacebook, {
-      method: "DELETE",
-      credentials: "include",
-    }).then(() => setFacebookState(initialFacebookState));
-  };
-
   const renderInstagramContent = () => {
     const s = instagramState;
     return (
@@ -301,62 +218,6 @@ const App = () => {
     );
   };
 
-  const renderFacebookContent = () => {
-    const s = facebookState;
-    return (
-      <>
-        {s.status === "error" && s.error && (
-          <ErrorDisplay error={s.error} onRetry={handleFacebookReset} />
-        )}
-
-        {(s.status === "idle" || s.status === "uploading") && (
-          <>
-            <FileUpload
-              isUploading={s.status === "uploading"}
-              apiEndpoint={API_ENDPOINTS.analyzeFacebook}
-              platformLabel="Facebook"
-              gradientStart={FACEBOOK_GRADIENT_START}
-              gradientEnd={FACEBOOK_GRADIENT_END}
-              onUploadStart={handleFacebookUploadStart}
-              onUploadSuccess={handleFacebookUploadSuccess}
-              onUploadError={handleFacebookUploadError}
-            />
-            <FacebookInstructions />
-          </>
-        )}
-
-        {s.status === "success" && s.result && (
-          <>
-            {s.cachedAt && (
-              <Box sx={{ mb: 2 }}>
-                <Alert
-                  severity="info"
-                  action={
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={handleClearFacebookCache}
-                    >
-                      Clear cached data
-                    </Button>
-                  }
-                >
-                  Showing your last Facebook analysis from{" "}
-                  {new Date(s.cachedAt * 1000).toLocaleDateString()}. Upload a
-                  new file to re-analyze.
-                </Alert>
-              </Box>
-            )}
-            <FacebookResultsDisplay
-              result={s.result}
-              onReset={handleFacebookReset}
-            />
-          </>
-        )}
-      </>
-    );
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -368,60 +229,7 @@ const App = () => {
         {auth.loading ? null : !auth.authenticated ? (
           <LoginScreen />
         ) : (
-          <>
-            {/* Platform tabs */}
-            <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-              <Tabs
-                value={activePlatform}
-                onChange={(_, v: Platform) => setActivePlatform(v)}
-                textColor="inherit"
-                TabIndicatorProps={{
-                  style: {
-                    background:
-                      activePlatform === "instagram"
-                        ? `linear-gradient(90deg, ${INSTAGRAM_GRADIENT_START}, ${INSTAGRAM_GRADIENT_END})`
-                        : `linear-gradient(90deg, ${FACEBOOK_GRADIENT_START}, ${FACEBOOK_GRADIENT_END})`,
-                    height: 3,
-                    borderRadius: 2,
-                  },
-                }}
-              >
-                <Tab
-                  value="instagram"
-                  label="Instagram"
-                  icon={<InstagramIcon />}
-                  iconPosition="start"
-                  sx={{
-                    fontWeight: activePlatform === "instagram" ? 700 : 400,
-                    color:
-                      activePlatform === "instagram"
-                        ? INSTAGRAM_GRADIENT_START
-                        : "text.secondary",
-                    minHeight: 48,
-                  }}
-                />
-                <Tab
-                  value="facebook"
-                  label="Facebook"
-                  icon={<FacebookIcon />}
-                  iconPosition="start"
-                  sx={{
-                    fontWeight: activePlatform === "facebook" ? 700 : 400,
-                    color:
-                      activePlatform === "facebook"
-                        ? FACEBOOK_GRADIENT_START
-                        : "text.secondary",
-                    minHeight: 48,
-                  }}
-                />
-              </Tabs>
-            </Box>
-
-            {/* Tab content */}
-            {activePlatform === "instagram"
-              ? renderInstagramContent()
-              : renderFacebookContent()}
-          </>
+          renderInstagramContent()
         )}
       </Layout>
     </ThemeProvider>
