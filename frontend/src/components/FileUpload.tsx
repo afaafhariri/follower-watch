@@ -61,12 +61,16 @@ export const FileUpload = ({
 
       if (!response.ok) {
         const errorData = data as ApiError;
-        throw new Error(errorData.error || "Upload failed");
+        const error = new Error(errorData.error || "Upload failed");
+        // 4xx means the file itself was rejected; retrying won't help
+        if (response.status < 500) error.name = "ClientError";
+        throw error;
       }
 
       return data;
     } catch (error) {
-      if (retryCount < RETRY_CONFIG.maxRetries) {
+      const retryable = !(error instanceof Error && error.name === "ClientError");
+      if (retryable && retryCount < RETRY_CONFIG.maxRetries) {
         const delay = Math.min(
           RETRY_CONFIG.baseDelay * Math.pow(2, retryCount),
           RETRY_CONFIG.maxDelay,

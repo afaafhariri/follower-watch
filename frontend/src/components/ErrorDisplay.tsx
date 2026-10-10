@@ -1,6 +1,7 @@
-import { Box, Typography, Button, Alert, AlertTitle } from "@mui/material";
+import { Box, Button, Alert, AlertTitle } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { ExportGuide } from "./ExportGuide";
 
 interface ErrorDisplayProps {
   error: string;
@@ -30,16 +31,6 @@ export const ErrorDisplay = ({ error, onRetry }: ErrorDisplayProps) => {
         {error}
       </Alert>
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 3, maxWidth: 400, mx: "auto" }}
-      >
-        Please make sure you're uploading a valid Instagram data export ZIP
-        file. The file should contain your followers and following data in JSON
-        format.
-      </Typography>
-
       <Button
         variant="contained"
         startIcon={<RefreshIcon />}
@@ -53,6 +44,8 @@ export const ErrorDisplay = ({ error, onRetry }: ErrorDisplayProps) => {
       >
         Try Again
       </Button>
+
+      <ExportGuide title="How to export your data correctly" />
     </Box>
   );
 };
