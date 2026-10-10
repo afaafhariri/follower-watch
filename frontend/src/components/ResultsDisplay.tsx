@@ -484,13 +484,12 @@ export const ResultsDisplay = ({ result, onReset }: ResultsDisplayProps) => {
       )}
 
       {/* Note */}
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ mt: 2, display: "block", textAlign: "center" }}
-      >
-        Click on any username to visit their Instagram profile
-      </Typography>
+      <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
+        Click on any username to visit their Instagram profile. If Instagram says{" "}
+        <strong>"Sorry, this page isn't available"</strong>, the account has most likely been
+        deactivated or deleted. It can also mean they changed their username since your export, or
+        blocked you.
+      </Alert>
     </Box>
   );
 };

@@ -91,7 +91,7 @@ export const ExportGuide = ({ title = "How to get your Instagram data" }: Export
 
       <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1.5 }}>
         The export usually takes minutes, sometimes a few hours, and Meta emails you when it's
-        ready. The download link expires after a few days. Upload the ZIP as it is; there's no need
+        ready. The download link expires after a few days. <strong>Note:</strong> Upload the ZIP as it is; there's no need
         to unzip it.
       </Typography>
     </Box>
