@@ -33,7 +33,6 @@ The backend parses two files from Meta's export (`connections/followers_and_foll
 follower-watch/
 ├── backend/                 # Web-app backend: Go HTTP server
 │   ├── instagram.go        # Core analysis (zip parsing, non-followers)
-│   ├── facebook.go         # Facebook export analysis
 │   ├── auth.go             # Google OAuth & session management
 │   ├── cache.go            # Redis caching layer
 │   ├── handlers.go         # Cached-result API handlers
