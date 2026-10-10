@@ -11,9 +11,10 @@ import {
   Button,
 } from "@mui/material";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
-import GitHubIcon from "@mui/icons-material/GitHub";
 import LogoutIcon from "@mui/icons-material/Logout";
 import type { UserInfo } from "../types";
+
+const AUTHOR_GITHUB = "https://github.com/afaafhariri";
 
 interface LayoutProps {
   children: ReactNode;
@@ -58,7 +59,7 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
             FollowerWatch
           </Typography>
           {user && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mr: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Avatar
                 src={user.picture}
                 alt={user.name}
@@ -82,14 +83,6 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
               </Button>
             </Box>
           )}
-          <Link
-            href="https://github.com/afaafhariri/follower-watch"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: "text.primary" }}
-          >
-            <GitHubIcon />
-          </Link>
         </Toolbar>
       </AppBar>
 
@@ -157,6 +150,30 @@ export const Layout = ({ children, user, authenticated, onLogout }: LayoutProps)
           <br />
           This tool is not affiliated with Instagram or Meta.
         </Typography>
+        <Link
+          href={AUTHOR_GITHUB}
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="none"
+          aria-label="Made by Afaaf Hariri, view GitHub profile"
+          sx={{
+            mt: 1.5,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 1,
+            color: "text.secondary",
+            "&:hover": { color: "primary.main" },
+          }}
+        >
+          <Typography variant="body2" fontWeight={500}>
+            Made By:
+          </Typography>
+          <Avatar
+            src={`${AUTHOR_GITHUB}.png`}
+            alt="Afaaf Hariri"
+            sx={{ width: 32, height: 32 }}
+          />
+        </Link>
       </Box>
     </Box>
   );

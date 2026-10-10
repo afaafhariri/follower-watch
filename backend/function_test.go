@@ -260,7 +260,8 @@ func TestAnalyzeFollowers_RecentActivity(t *testing.T) {
 		t.Fatal("Expected recent_activity in response")
 	}
 
-	wantStatus := map[string]string{"user3": RequestAccepted, "user5": RequestPending, "user6": RequestNotAccepted}
+	// user5 is still pending, so it's only listed under PendingRequests
+	wantStatus := map[string]string{"user3": RequestAccepted, "user6": RequestNotAccepted}
 	if len(activity.FollowRequests) != len(wantStatus) {
 		t.Fatalf("Expected %d follow requests, got %d", len(wantStatus), len(activity.FollowRequests))
 	}

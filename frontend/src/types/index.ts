@@ -11,7 +11,7 @@ export interface Profile {
   timestamp?: number;
 }
 
-export type FollowRequestStatus = "accepted" | "pending" | "not_accepted";
+export type FollowRequestStatus = "accepted" | "not_accepted";
 
 export interface FollowRequest extends Profile {
   status: FollowRequestStatus;
