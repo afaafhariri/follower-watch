@@ -62,6 +62,13 @@ func getOAuthConfig() *oauth2.Config {
 	return googleOAuthConfig
 }
 
+// isSecureRequest reports whether the client connected over HTTPS, either
+// directly or through a TLS-terminating proxy such as Cloud Run or nginx.
+// Cookies are marked Secure only then, so plain-http local dev keeps working.
+func isSecureRequest(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+}
+
 func getSessionSecret() []byte {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
@@ -127,6 +134,7 @@ func HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
+		Secure:   isSecureRequest(r),
 		MaxAge:   300,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -150,6 +158,7 @@ func HandleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		Name:   "oauth_state",
 		Value:  "",
 		Path:   "/",
+		Secure: isSecureRequest(r),
 		MaxAge: -1,
 	})
 
@@ -193,6 +202,7 @@ func HandleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		Name:     "session",
 		Value:    sessionCookie,
 		Path:     "/",
+		Secure:   isSecureRequest(r),
 		MaxAge:   86400,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -246,6 +256,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 		Name:     "session",
 		Value:    "",
 		Path:     "/",
+		Secure:   isSecureRequest(r),
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
