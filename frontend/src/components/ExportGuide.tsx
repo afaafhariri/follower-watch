@@ -1,14 +1,11 @@
 import { useState } from "react";
-import {
-  Alert,
-  Box,
-  Link,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from "@mui/material";
+import { Box, ButtonBase, Link, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import LaptopIcon from "@mui/icons-material/Laptop";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { Mono, Panel } from "./ui";
 
 type Device = "mobile" | "web";
 
@@ -25,7 +22,7 @@ const OPEN_EXPORT_STEPS: Record<Device, React.ReactNode[]> = {
   web: [
     <>
       Sign in at{" "}
-      <Link href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
+      <Link href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" sx={{ color: "accent.primary" }}>
         instagram.com
       </Link>
     </>,
@@ -41,12 +38,17 @@ const CONFIGURE_STEPS: React.ReactNode[] = [
   <>Select <strong>Start export</strong>. When the email arrives, download the ZIP and upload it here</>,
 ];
 
+const DEVICES: { key: Device; label: string; icon: React.ReactNode }[] = [
+  { key: "mobile", label: "Mobile app", icon: <PhoneIphoneIcon sx={{ fontSize: 16 }} /> },
+  { key: "web", label: "Web", icon: <LaptopIcon sx={{ fontSize: 16 }} /> },
+];
+
 export const ExportGuide = ({ title = "How to get your Instagram data" }: ExportGuideProps) => {
   const [device, setDevice] = useState<Device>("mobile");
   const steps = [...OPEN_EXPORT_STEPS[device], ...CONFIGURE_STEPS];
 
   return (
-    <Box sx={{ mt: 3, maxWidth: 560, mx: "auto", textAlign: "left" }}>
+    <Panel sx={{ p: { xs: 2, sm: 3 }, textAlign: "left" }}>
       <Box
         sx={{
           display: "flex",
@@ -57,43 +59,94 @@ export const ExportGuide = ({ title = "How to get your Instagram data" }: Export
           mb: 2,
         }}
       >
-        <Typography variant="subtitle1" fontWeight={600}>
-          {title}
-        </Typography>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={device}
-          onChange={(_, v: Device | null) => v && setDevice(v)}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <MenuBookOutlinedIcon sx={{ fontSize: 20, color: "accent.primary" }} />
+          <Typography variant="h3" component="h2">
+            {title}
+          </Typography>
+        </Box>
+        <Box
+          role="tablist"
           aria-label="Device"
+          sx={{ display: "flex", gap: 0.5, p: 0.5, borderRadius: "10px", bgcolor: "surface.lowest" }}
         >
-          <ToggleButton value="mobile" sx={{ px: 1.5, gap: 0.5 }}>
-            <PhoneIphoneIcon fontSize="small" /> Mobile app
-          </ToggleButton>
-          <ToggleButton value="web" sx={{ px: 1.5, gap: 0.5 }}>
-            <LaptopIcon fontSize="small" /> Web
-          </ToggleButton>
-        </ToggleButtonGroup>
+          {DEVICES.map((d) => {
+            const selected = d.key === device;
+            return (
+              <ButtonBase
+                key={d.key}
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setDevice(d.key)}
+                sx={{
+                  gap: 0.75,
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: "8px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  ...(selected
+                    ? { bgcolor: "accent.container", color: "accent.onContainer" }
+                    : { color: "text.secondary", "&:hover": { color: "text.primary" } }),
+                }}
+              >
+                {d.icon}
+                {d.label}
+              </ButtonBase>
+            );
+          })}
+        </Box>
       </Box>
 
-      <Box component="ol" sx={{ pl: 3, m: 0, "& li": { mb: 0.75 } }}>
+      <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 1 }}>
         {steps.map((step, i) => (
-          <Typography key={i} component="li" variant="body2" color="text.secondary">
-            {step}
-          </Typography>
+          <Box component="li" key={i} sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
+            <Mono
+              sx={(t) => ({
+                width: 22,
+                height: 22,
+                flexShrink: 0,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 10,
+                fontWeight: 700,
+                bgcolor: alpha(t.palette.primary.main, 0.15),
+                color: "accent.primary",
+              })}
+            >
+              {i + 1}
+            </Mono>
+            <Typography sx={{ fontSize: 13, lineHeight: "22px", color: "text.secondary", "& strong": { color: "text.primary" } }}>
+              {step}
+            </Typography>
+          </Box>
         ))}
       </Box>
 
-      <Alert severity="warning" sx={{ mt: 2 }}>
-        The format defaults to <strong>HTML</strong>. Switch it to <strong>JSON</strong>, or the
-        file can't be analyzed.
-      </Alert>
+      <Box
+        sx={(t) => ({
+          mt: 2,
+          p: 1.25,
+          borderRadius: "8px",
+          display: "flex",
+          gap: 1,
+          alignItems: "flex-start",
+          bgcolor: alpha(t.palette.state.warning, 0.1),
+          color: "state.warning",
+        })}
+      >
+        <WarningAmberIcon sx={{ fontSize: 18, mt: 0.25 }} />
+        <Typography sx={{ fontSize: 13, "& strong": { color: "text.primary" } }}>
+          The format defaults to <strong>HTML</strong>. Switch it to <strong>JSON</strong>, or the file
+          can't be analyzed.
+        </Typography>
+      </Box>
 
-      <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1.5 }}>
-        The export usually takes minutes, sometimes a few hours, and Meta emails you when it's
-        ready. The download link expires after a few days. <strong>Note:</strong> Upload the ZIP as it is; there's no need
-        to unzip it.
+      <Typography sx={{ mt: 1.5, fontSize: 12, color: "text.muted" }}>
+        The export usually takes minutes, sometimes a few hours, and Meta emails you when it's ready.
+        The download link expires after a few days. Upload the ZIP as it is; there's no need to unzip it.
       </Typography>
-    </Box>
+    </Panel>
   );
 };
