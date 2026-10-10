@@ -5,7 +5,7 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import { UPLOAD_CONFIG } from "../config";
 import { BRAND_GRADIENT } from "../theme";
-import { FileTag, Mono, gradientButtonSx } from "./ui";
+import { Mono, gradientButtonSx } from "./ui";
 
 interface FileUploadProps {
   isUploading: boolean;
@@ -14,7 +14,12 @@ interface FileUploadProps {
   onFile: (file: File) => void;
 }
 
-export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUploadProps) => {
+export const FileUpload = ({
+  isUploading,
+  progress,
+  fileName,
+  onFile,
+}: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,17 +55,24 @@ export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUplo
       onDrop={handleDrop}
       sx={(t) => ({
         border: "2px dashed",
-        borderColor: isDragOver ? t.palette.secondary.main : alpha(t.palette.primary.main, 0.55),
+        borderColor: isDragOver
+          ? t.palette.secondary.main
+          : alpha(t.palette.primary.main, 0.55),
         borderRadius: "16px",
         px: { xs: 2, sm: 4 },
         py: { xs: 4, sm: 6 },
         textAlign: "center",
         cursor: isUploading ? "default" : "pointer",
         transition: "border-color .2s, background-color .2s",
-        bgcolor: isDragOver ? alpha(t.palette.primary.main, 0.08) : alpha(t.palette.surface.card, 0.4),
+        bgcolor: isDragOver
+          ? alpha(t.palette.primary.main, 0.08)
+          : alpha(t.palette.surface.card, 0.4),
         "&:hover": isUploading
           ? undefined
-          : { borderColor: t.palette.secondary.main, bgcolor: alpha(t.palette.primary.main, 0.05) },
+          : {
+              borderColor: t.palette.secondary.main,
+              bgcolor: alpha(t.palette.primary.main, 0.05),
+            },
       })}
     >
       <input
@@ -86,12 +98,18 @@ export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUplo
           boxShadow: `0 0 32px ${alpha(t.palette.primary.main, 0.35)}`,
         })}
       >
-        {isUploading ? <FolderZipOutlinedIcon sx={{ fontSize: 32 }} /> : <CloudUploadOutlinedIcon sx={{ fontSize: 32 }} />}
+        {isUploading ? (
+          <FolderZipOutlinedIcon sx={{ fontSize: 32 }} />
+        ) : (
+          <CloudUploadOutlinedIcon sx={{ fontSize: 32 }} />
+        )}
       </Box>
 
       {isUploading ? (
         <Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>Processing your data…</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>
+            Processing your data…
+          </Typography>
           {fileName && <Mono sx={{ color: "text.muted" }}>{fileName}</Mono>}
           <Box sx={{ width: "100%", maxWidth: 400, mx: "auto", mt: 2.5 }}>
             <LinearProgress
@@ -102,7 +120,10 @@ export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUplo
                 height: 8,
                 borderRadius: 4,
                 bgcolor: "surface.high",
-                "& .MuiLinearProgress-bar": { borderRadius: 4, background: BRAND_GRADIENT },
+                "& .MuiLinearProgress-bar": {
+                  borderRadius: 4,
+                  background: BRAND_GRADIENT,
+                },
               }}
             />
             <Mono sx={{ display: "block", mt: 1, color: "text.secondary" }}>
@@ -112,9 +133,12 @@ export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUplo
         </Box>
       ) : (
         <Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>Drop your Instagram export ZIP here</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>
+            Drop your Instagram export ZIP here
+          </Typography>
           <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
-            or click to browse • up to {UPLOAD_CONFIG.maxFileSizeMB} MB • no need to unzip
+            or click to browse • up to {UPLOAD_CONFIG.maxFileSizeMB} MB • no
+            need to unzip
           </Typography>
           <Button
             size="large"
@@ -127,11 +151,11 @@ export const FileUpload = ({ isUploading, progress, fileName, onFile }: FileUplo
           >
             Select ZIP file
           </Button>
-          <Box sx={{ mt: 3, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1 }}>
+          {/* <Box sx={{ mt: 3, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1 }}>
             <FileTag>connections/followers_and_following/</FileTag>
             <FileTag>followers_*.json</FileTag>
             <FileTag>following.json</FileTag>
-          </Box>
+          </Box> */}
         </Box>
       )}
     </Box>

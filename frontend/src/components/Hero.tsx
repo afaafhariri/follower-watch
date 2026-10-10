@@ -15,7 +15,13 @@ import type { AnalysisResult } from "../types";
 const CACHE_TTL_DAYS = 30;
 
 // Gradient hero card with soft background glows
-export const HeroShell = ({ children, id }: { children: ReactNode; id?: string }) => (
+export const HeroShell = ({
+  children,
+  id,
+}: {
+  children: ReactNode;
+  id?: string;
+}) => (
   <Box
     id={id}
     component="section"
@@ -26,7 +32,10 @@ export const HeroShell = ({ children, id }: { children: ReactNode; id?: string }
       p: { xs: 2.5, md: 5 },
       border: `1px solid ${t.palette.surface.border}`,
       background: `linear-gradient(135deg, ${t.palette.surface.card}, ${t.palette.surface.low} 50%, ${t.palette.surface.base})`,
-      boxShadow: t.palette.mode === "dark" ? "0 20px 40px -16px rgba(0,0,0,0.6)" : "0 8px 24px -12px rgba(15,23,42,0.12)",
+      boxShadow:
+        t.palette.mode === "dark"
+          ? "0 20px 40px -16px rgba(0,0,0,0.6)"
+          : "0 8px 24px -12px rgba(15,23,42,0.12)",
       scrollMarginTop: 88,
     })}
   >
@@ -58,7 +67,16 @@ export const HeroShell = ({ children, id }: { children: ReactNode; id?: string }
         pointerEvents: "none",
       })}
     />
-    <Box sx={{ position: "relative", display: "flex", flexDirection: "column", gap: 3 }}>{children}</Box>
+    <Box
+      sx={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+      }}
+    >
+      {children}
+    </Box>
   </Box>
 );
 
@@ -78,7 +96,14 @@ export const HeroIntro = ({ title, children, aside }: HeroIntroProps) => (
       gap: 2,
     }}
   >
-    <Box sx={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: 1.25 }}>
+    <Box
+      sx={{
+        maxWidth: 720,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.25,
+      }}
+    >
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
         <Box
           sx={(t) => ({
@@ -113,11 +138,19 @@ export const HeroIntro = ({ title, children, aside }: HeroIntroProps) => (
       </Box>
       <Typography
         variant="h1"
-        sx={{ fontSize: { xs: 30, md: 40 }, lineHeight: { xs: "38px", md: "48px" }, color: "text.primary" }}
+        sx={{
+          fontSize: { xs: 30, md: 40 },
+          lineHeight: { xs: "38px", md: "48px" },
+          color: "text.primary",
+        }}
       >
         {title}
       </Typography>
-      <Typography sx={{ fontSize: 14, lineHeight: 1.7, color: "text.secondary" }}>{children}</Typography>
+      <Typography
+        sx={{ fontSize: 14, lineHeight: 1.7, color: "text.secondary" }}
+      >
+        {children}
+      </Typography>
     </Box>
     {aside}
   </Box>
@@ -125,8 +158,9 @@ export const HeroIntro = ({ title, children, aside }: HeroIntroProps) => (
 
 export const IntroCopy = () => (
   <>
-    Compares <FileTag>followers_*.json</FileTag> and <FileTag>following.json</FileTag> from your
-    official Meta export. Your file is processed in memory and never stored.
+    Analyses <FileTag>followers</FileTag> and <FileTag>following</FileTag> from
+    your official Meta export. Your file is processed in memory and never
+    stored.
   </>
 );
 
@@ -166,11 +200,14 @@ export const CacheCapsule = ({ cachedAt }: { cachedAt: number }) => {
       </Box>
       <Box sx={{ display: "flex", flexDirection: "column" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 600 }}>Saved result</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
+            Saved result
+          </Typography>
           <Dot />
         </Box>
         <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-          Expires in {remaining} {remaining === 1 ? "day" : "days"} • SHA-256 key
+          Expires in {remaining} {remaining === 1 ? "day" : "days"} • SHA-256
+          key
         </Mono>
       </Box>
     </Box>
@@ -186,7 +223,14 @@ interface StatCardProps {
   highlight?: Tone;
 }
 
-const StatCard = ({ label, icon, value, unit, footer, highlight }: StatCardProps) => (
+const StatCard = ({
+  label,
+  icon,
+  value,
+  unit,
+  footer,
+  highlight,
+}: StatCardProps) => (
   <Box
     sx={(t) => ({
       position: "relative",
@@ -268,47 +312,89 @@ interface StatCardsProps {
 
 export const StatCards = ({ result, analyzedAt }: StatCardsProps) => {
   const activity = result.recent_activity;
-  const accepted = activity?.follow_requests.filter((r) => r.status === "accepted").length ?? 0;
-  const notAccepted = activity?.follow_requests.filter((r) => r.status === "not_accepted").length ?? 0;
+  const accepted =
+    activity?.follow_requests.filter((r) => r.status === "accepted").length ??
+    0;
+  const notAccepted =
+    activity?.follow_requests.filter((r) => r.status === "not_accepted")
+      .length ?? 0;
   const pending = activity?.pending_requests.length ?? 0;
   const mutual = Math.max(result.total_following - result.count, 0);
-  const share = result.total_following > 0 ? (result.count / result.total_following) * 100 : 0;
+  const share =
+    result.total_following > 0
+      ? (result.count / result.total_following) * 100
+      : 0;
 
   return (
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          lg: "repeat(4, 1fr)",
+        },
         gap: 2,
       }}
     >
       <StatCard
         label="Total following"
-        icon={<PersonAddAltOutlinedIcon sx={{ fontSize: 20, color: "accent.primary" }} />}
+        icon={
+          <PersonAddAltOutlinedIcon
+            sx={{ fontSize: 20, color: "accent.primary" }}
+          />
+        }
         value={fmt(result.total_following)}
         unit="accounts"
         footer={
           <>
-            <Mono sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, fontSize: 10 }}>
-              <EventAvailableOutlinedIcon sx={{ fontSize: 13, color: "state.positive" }} />
-              {analyzedAt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            <Mono
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                fontSize: 10,
+              }}
+            >
+              <EventAvailableOutlinedIcon
+                sx={{ fontSize: 13, color: "state.positive" }}
+              />
+              {analyzedAt.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </Mono>
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>following.json</Mono>
+            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
+              following.json
+            </Mono>
           </>
         }
       />
       <StatCard
         label="Total followers"
-        icon={<GroupOutlinedIcon sx={{ fontSize: 20, color: "accent.tertiary" }} />}
+        icon={
+          <GroupOutlinedIcon sx={{ fontSize: 20, color: "accent.tertiary" }} />
+        }
         value={fmt(result.total_followers)}
         unit="accounts"
         footer={
           <>
-            <Mono sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, fontSize: 10, color: "accent.tertiary" }}>
+            <Mono
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                fontSize: 10,
+                color: "accent.tertiary",
+              }}
+            >
               <SyncAltIcon sx={{ fontSize: 13 }} />
               {fmt(mutual)} mutual
             </Mono>
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>followers_*.json</Mono>
+            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
+              followers_*.json
+            </Mono>
           </>
         }
       />
@@ -326,7 +412,11 @@ export const StatCards = ({ result, analyzedAt }: StatCardsProps) => {
       />
       <StatCard
         label="Recent requests"
-        icon={<ScheduleSendOutlinedIcon sx={{ fontSize: 20, color: "state.warning" }} />}
+        icon={
+          <ScheduleSendOutlinedIcon
+            sx={{ fontSize: 20, color: "state.warning" }}
+          />
+        }
         value={activity ? fmt(accepted + notAccepted + pending) : "—"}
         unit="sent, last ~90 days"
         footer={
@@ -337,7 +427,9 @@ export const StatCards = ({ result, analyzedAt }: StatCardsProps) => {
               <MiniChip tone="negative">{notAccepted} not acc</MiniChip>
             </Box>
           ) : (
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>Re-upload to see</Mono>
+            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
+              Re-upload to see
+            </Mono>
           )
         }
       />

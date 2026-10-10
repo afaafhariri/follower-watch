@@ -19,8 +19,8 @@ const STEPS: { title: string; body: ReactNode; tone: Tone }[] = [
     title: "In-memory JSON parse",
     body: (
       <>
-        Reads <FileTag>followers_*.json</FileTag> and <FileTag>following.json</FileTag>, plus the
-        recent request and unfollow lists when they're included.
+        Reads <FileTag>followers</FileTag> and <FileTag>following</FileTag>,
+        plus the recent request and unfollow lists when they're included.
       </>
     ),
     tone: "accent",
@@ -29,8 +29,8 @@ const STEPS: { title: string; body: ReactNode; tone: Tone }[] = [
     title: "Set difference",
     body: (
       <>
-        <Mono sx={{ color: "text.primary" }}>following \ followers</Mono> gives every account that
-        doesn't follow you back.
+        <Mono sx={{ color: "text.primary" }}>following \ followers</Mono> gives
+        every account that doesn't follow you back.
       </>
     ),
     tone: "accent",
@@ -42,13 +42,19 @@ const STEPS: { title: string; body: ReactNode; tone: Tone }[] = [
   },
 ];
 
-const CAVEATS: { title: string; body: ReactNode; tone: Tone; icon: ReactNode }[] = [
+const CAVEATS: {
+  title: string;
+  body: ReactNode;
+  tone: Tone;
+  icon: ReactNode;
+}[] = [
   {
     title: "Missing profiles",
     body: (
       <>
-        If a profile says <em>"Sorry, this page isn't available"</em>, the account was most likely
-        deactivated or deleted. It can also mean they changed their username or blocked you.
+        If a profile says <em>"Sorry, this page isn't available"</em>, the
+        account was most likely deactivated or deleted. It can also mean they
+        changed their username or blocked you.
       </>
     ),
     tone: "warning",
@@ -68,7 +74,13 @@ const CAVEATS: { title: string; body: ReactNode; tone: Tone; icon: ReactNode }[]
   },
 ];
 
-const CardTitle = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
+const CardTitle = ({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
     {icon}
     <Typography variant="h3" component="h2">
@@ -79,19 +91,45 @@ const CardTitle = ({ icon, children }: { icon: ReactNode; children: ReactNode })
 
 export const InfoSidebar = () => (
   <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-    <Panel id="how-it-works" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, scrollMarginTop: 88 }}>
-      <CardTitle icon={<AccountTreeOutlinedIcon sx={{ fontSize: 20, color: "accent.primary" }} />}>
+    <Panel
+      id="how-it-works"
+      sx={{
+        p: 2,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        scrollMarginTop: 88,
+      }}
+    >
+      <CardTitle
+        icon={
+          <AccountTreeOutlinedIcon
+            sx={{ fontSize: 20, color: "accent.primary" }}
+          />
+        }
+      >
         How it works
       </CardTitle>
       <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0 }}>
         {STEPS.map((step, i) => (
           <Box component="li" key={step.title}>
             {i > 0 && (
-              <Box aria-hidden sx={{ display: "flex", justifyContent: "center", my: 0.25 }}>
+              <Box
+                aria-hidden
+                sx={{ display: "flex", justifyContent: "center", my: 0.25 }}
+              >
                 <SouthIcon sx={{ fontSize: 16, color: "text.muted" }} />
               </Box>
             )}
-            <Box sx={{ p: 1.25, borderRadius: "8px", bgcolor: "surface.low", display: "flex", gap: 1.25 }}>
+            <Box
+              sx={{
+                p: 1.25,
+                borderRadius: "8px",
+                bgcolor: "surface.low",
+                display: "flex",
+                gap: 1.25,
+              }}
+            >
               <Mono
                 sx={(t) => ({
                   width: 24,
@@ -110,8 +148,16 @@ export const InfoSidebar = () => (
                 {i + 1}
               </Mono>
               <Box>
-                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{step.title}</Typography>
-                <Typography sx={{ fontSize: 12, lineHeight: "18px", color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                  {step.title}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    lineHeight: "18px",
+                    color: "text.secondary",
+                  }}
+                >
                   {step.body}
                 </Typography>
               </Box>
@@ -122,7 +168,11 @@ export const InfoSidebar = () => (
     </Panel>
 
     <Panel sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-      <CardTitle icon={<InfoOutlinedIcon sx={{ fontSize: 20, color: "state.warning" }} />}>
+      <CardTitle
+        icon={
+          <InfoOutlinedIcon sx={{ fontSize: 20, color: "state.warning" }} />
+        }
+      >
         Export caveats &amp; tips
       </CardTitle>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -134,13 +184,26 @@ export const InfoSidebar = () => (
               borderRadius: "8px",
               display: "flex",
               gap: 1,
-              bgcolor: c.tone === "warning" ? alpha(t.palette.state.warning, 0.1) : t.palette.surface.low,
+              bgcolor:
+                c.tone === "warning"
+                  ? alpha(t.palette.state.warning, 0.1)
+                  : t.palette.surface.low,
             })}
           >
-            <Box sx={(t) => ({ color: c.tone === "neutral" ? t.palette.text.muted : toneColor(t, c.tone).fg, mt: 0.25 })}>
+            <Box
+              sx={(t) => ({
+                color:
+                  c.tone === "neutral"
+                    ? t.palette.text.muted
+                    : toneColor(t, c.tone).fg,
+                mt: 0.25,
+              })}
+            >
               {c.icon}
             </Box>
-            <Typography sx={{ fontSize: 12, lineHeight: "18px", color: "text.secondary" }}>
+            <Typography
+              sx={{ fontSize: 12, lineHeight: "18px", color: "text.secondary" }}
+            >
               <Box component="strong" sx={{ color: "text.primary" }}>
                 {c.title}:
               </Box>{" "}

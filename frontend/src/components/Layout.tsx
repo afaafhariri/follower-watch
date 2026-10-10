@@ -2,22 +2,25 @@ import { useState, type ReactNode } from "react";
 import {
   Avatar,
   Box,
-  Button,
   ButtonBase,
   Divider,
+  IconButton,
   Link,
   ListItemIcon,
   Menu,
   MenuItem,
+  Tooltip,
   Typography,
+  type PaletteMode,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
-import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import LogoutIcon from "@mui/icons-material/Logout";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { BRAND_GRADIENT } from "../theme";
-import { Dot, Micro, Mono, primaryButtonSx } from "./ui";
+import { Dot, Micro, Mono } from "./ui";
 import type { UserInfo } from "../types";
 
 const AUTHOR_GITHUB = "https://github.com/afaafhariri";
@@ -33,7 +36,8 @@ interface LayoutProps {
   children: ReactNode;
   user: UserInfo | null;
   nav?: NavItem[];
-  onUpload?: () => void;
+  themeMode: PaletteMode;
+  onToggleTheme: () => void;
   onLogout: () => void;
 }
 
@@ -89,7 +93,7 @@ const UserMenu = ({ user, onLogout }: { user: UserInfo; onLogout: () => void }) 
   );
 };
 
-export const Layout = ({ children, user, nav, onUpload, onLogout }: LayoutProps) => {
+export const Layout = ({ children, user, nav, themeMode, onToggleTheme, onLogout }: LayoutProps) => {
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
@@ -176,19 +180,26 @@ export const Layout = ({ children, user, nav, onUpload, onLogout }: LayoutProps)
           )}
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
-            {onUpload && (
-              <Button
-                size="small"
-                onClick={onUpload}
-                startIcon={<CloudUploadOutlinedIcon />}
-                aria-label="Upload new export"
-                sx={[primaryButtonSx, { minWidth: 0, "& .MuiButton-startIcon": { mr: { xs: 0, sm: 1 } } }]}
+            <Tooltip title={themeMode === "dark" ? "Switch to light theme" : "Switch to dark theme"}>
+              <IconButton
+                onClick={onToggleTheme}
+                aria-label={themeMode === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "8px",
+                  bgcolor: "surface.high",
+                  color: "text.secondary",
+                  "&:hover": { bgcolor: "surface.highest", color: "text.primary" },
+                }}
               >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                  Upload New Export
-                </Box>
-              </Button>
-            )}
+                {themeMode === "dark" ? (
+                  <LightModeOutlinedIcon sx={{ fontSize: 18 }} />
+                ) : (
+                  <DarkModeOutlinedIcon sx={{ fontSize: 18 }} />
+                )}
+              </IconButton>
+            </Tooltip>
             {user && <UserMenu user={user} onLogout={onLogout} />}
           </Box>
         </Box>
