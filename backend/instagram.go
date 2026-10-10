@@ -6,32 +6,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
-
-type InstagramRelationship struct {
-	Title     string `json:"title"`
-	MediaList []struct {
-		Title string `json:"title"`
-	} `json:"media_list_data"`
-	StringListData []struct {
-		Href      string `json:"href"`
-		Value     string `json:"value"`
-		Timestamp int64  `json:"timestamp"`
-	} `json:"string_list_data"`
-}
-
-type FollowingData struct {
-	RelationshipsFollowing []InstagramRelationship `json:"relationships_following"`
-}
 
 type NonFollower struct {
 	Username   string `json:"username"`
@@ -45,8 +27,10 @@ type APIResponse struct {
 	TotalFollowing int           `json:"total_following,omitempty"`
 	TotalFollowers int           `json:"total_followers,omitempty"`
 	Count          int           `json:"count,omitempty"`
-	Error          string        `json:"error,omitempty"`
-	Message        string        `json:"message,omitempty"`
+	// RecentActivity is nil only in results cached before it was added
+	RecentActivity *RecentActivity `json:"recent_activity,omitempty"`
+	Error          string          `json:"error,omitempty"`
+	Message        string          `json:"message,omitempty"`
 }
 
 var (
@@ -139,214 +123,6 @@ func sendError(w http.ResponseWriter, statusCode int, message string) {
 	})
 }
 
-func extractFollowers(zipReader *zip.Reader) (map[string]struct{}, int, error) {
-	followers := make(map[string]struct{})
-	// Match followers_1.json, followers_2.json, etc. in connections/followers_and_following/ folder
-	followerPattern := regexp.MustCompile(`(?i)followers(_\d+)?\.json$`)
-	// Path pattern to match the expected folder structure
-	pathPattern := regexp.MustCompile(`(?i)connections/followers_and_following/`)
-
-	log.Printf("[DEBUG] extractFollowers: scanning %d files in zip", len(zipReader.File))
-
-	for _, file := range zipReader.File {
-		fileName := file.Name
-		log.Printf("[DEBUG] extractFollowers: checking file: %s", fileName)
-		baseName := fileName
-		if idx := strings.LastIndex(fileName, "/"); idx != -1 {
-			baseName = fileName[idx+1:]
-		}
-
-		inExpectedPath := pathPattern.MatchString(fileName)
-		matchesFollowerPattern := followerPattern.MatchString(baseName)
-
-		log.Printf("[DEBUG] extractFollowers: file=%s, baseName=%s, inExpectedPath=%v, matchesFollowerPattern=%v", fileName, baseName, inExpectedPath, matchesFollowerPattern)
-
-		if !matchesFollowerPattern && !strings.Contains(strings.ToLower(baseName), "followers") {
-			log.Printf("[DEBUG] extractFollowers: skipping %s (not a followers file)", fileName)
-			continue
-		}
-
-		if strings.Contains(strings.ToLower(baseName), "following") {
-			log.Printf("[DEBUG] extractFollowers: skipping %s (is a following file)", fileName)
-			continue
-		}
-
-		if !inExpectedPath && !matchesFollowerPattern {
-			log.Printf("[DEBUG] extractFollowers: skipping %s (not in expected path and doesn't match pattern)", fileName)
-			continue
-		}
-
-		log.Printf("[DEBUG] extractFollowers: PROCESSING file: %s", fileName)
-
-		rc, err := file.Open()
-		if err != nil {
-			continue
-		}
-
-		content, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			continue
-		}
-
-		var relationships []InstagramRelationship
-		if err := json.Unmarshal(content, &relationships); err == nil {
-			log.Printf("[DEBUG] extractFollowers: parsed %s as []InstagramRelationship with %d items", fileName, len(relationships))
-			for _, rel := range relationships {
-				// For followers: username is in string_list_data[].value (title is empty)
-				// For following: username is in title (string_list_data has href/timestamp only)
-				var username string
-				if len(rel.StringListData) > 0 && rel.StringListData[0].Value != "" {
-					username = rel.StringListData[0].Value
-				} else if rel.Title != "" {
-					username = rel.Title
-				}
-				if username != "" {
-					followers[strings.ToLower(username)] = struct{}{}
-					log.Printf("[DEBUG] extractFollowers: added follower: %s", username)
-				}
-			}
-			continue
-		} else {
-			log.Printf("[DEBUG] extractFollowers: failed to parse %s as []InstagramRelationship: %v", fileName, err)
-		}
-
-		var singleRel InstagramRelationship
-		if err := json.Unmarshal(content, &singleRel); err == nil {
-			log.Printf("[DEBUG] extractFollowers: parsed %s as single InstagramRelationship", fileName)
-			var username string
-			if len(singleRel.StringListData) > 0 && singleRel.StringListData[0].Value != "" {
-				username = singleRel.StringListData[0].Value
-			} else if singleRel.Title != "" {
-				username = singleRel.Title
-			}
-			if username != "" {
-				followers[strings.ToLower(username)] = struct{}{}
-			}
-		} else {
-			log.Printf("[DEBUG] extractFollowers: failed to parse %s as single InstagramRelationship: %v", fileName, err)
-			log.Printf("[DEBUG] extractFollowers: content preview: %.500s", string(content))
-		}
-	}
-
-	log.Printf("[DEBUG] extractFollowers: found %d total followers", len(followers))
-	return followers, len(followers), nil
-}
-
-func extractFollowing(zipReader *zip.Reader) ([]NonFollower, int, error) {
-	var following []NonFollower
-	pathPattern := regexp.MustCompile(`(?i)connections/followers_and_following/`)
-	followingPattern := regexp.MustCompile(`(?i)^following\.json$`)
-
-	log.Printf("[DEBUG] extractFollowing: scanning %d files in zip", len(zipReader.File))
-
-	for _, file := range zipReader.File {
-		fileName := file.Name
-		log.Printf("[DEBUG] extractFollowing: checking file: %s", fileName)
-		lowerFileName := strings.ToLower(fileName)
-		baseName := fileName
-		if idx := strings.LastIndex(fileName, "/"); idx != -1 {
-			baseName = fileName[idx+1:]
-		}
-		lowerBaseName := strings.ToLower(baseName)
-
-		inExpectedPath := pathPattern.MatchString(fileName)
-		matchesFollowingPattern := followingPattern.MatchString(baseName)
-
-		log.Printf("[DEBUG] extractFollowing: file=%s, baseName=%s, inExpectedPath=%v, matchesFollowingPattern=%v", fileName, baseName, inExpectedPath, matchesFollowingPattern)
-
-		if !matchesFollowingPattern && !strings.Contains(lowerBaseName, "following") {
-			log.Printf("[DEBUG] extractFollowing: skipping %s (not a following file)", fileName)
-			continue
-		}
-
-		if strings.Contains(lowerBaseName, "followers") {
-			log.Printf("[DEBUG] extractFollowing: skipping %s (is a followers file)", fileName)
-			continue
-		}
-
-		if !inExpectedPath && !matchesFollowingPattern && !strings.Contains(lowerFileName, "following") {
-			log.Printf("[DEBUG] extractFollowing: skipping %s (not in expected path)", fileName)
-			continue
-		}
-
-		log.Printf("[DEBUG] extractFollowing: PROCESSING file: %s", fileName)
-
-		rc, err := file.Open()
-		if err != nil {
-			continue
-		}
-
-		content, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			continue
-		}
-
-		var followingData FollowingData
-		if err := json.Unmarshal(content, &followingData); err == nil {
-			log.Printf("[DEBUG] extractFollowing: parsed %s as FollowingData with %d relationships", fileName, len(followingData.RelationshipsFollowing))
-			for _, rel := range followingData.RelationshipsFollowing {
-				var username string
-				var timestamp int64
-				if len(rel.StringListData) > 0 {
-					if rel.StringListData[0].Value != "" {
-						username = rel.StringListData[0].Value
-					}
-					timestamp = rel.StringListData[0].Timestamp
-				}
-				if username == "" && rel.Title != "" {
-					username = rel.Title
-				}
-				if username != "" {
-					following = append(following, NonFollower{
-						Username:   username,
-						ProfileURL: fmt.Sprintf("https://instagram.com/%s", username),
-						FollowedAt: timestamp,
-					})
-				}
-			}
-			if len(following) > 0 {
-				log.Printf("[DEBUG] extractFollowing: found %d following from FollowingData", len(following))
-				break
-			}
-		} else {
-			log.Printf("[DEBUG] extractFollowing: failed to parse %s as FollowingData: %v", fileName, err)
-		}
-
-		var relationships []InstagramRelationship
-		if err := json.Unmarshal(content, &relationships); err == nil {
-			log.Printf("[DEBUG] extractFollowing: parsed %s as []InstagramRelationship with %d items", fileName, len(relationships))
-			for _, rel := range relationships {
-				var username string
-				var timestamp int64
-				if len(rel.StringListData) > 0 {
-					if rel.StringListData[0].Value != "" {
-						username = rel.StringListData[0].Value
-					}
-					timestamp = rel.StringListData[0].Timestamp
-				}
-				if username == "" && rel.Title != "" {
-					username = rel.Title
-				}
-				if username != "" {
-					following = append(following, NonFollower{
-						Username:   username,
-						ProfileURL: fmt.Sprintf("https://instagram.com/%s", username),
-						FollowedAt: timestamp,
-					})
-				}
-			}
-		} else {
-			log.Printf("[DEBUG] extractFollowing: failed to parse %s as []InstagramRelationship: %v", fileName, err)
-			log.Printf("[DEBUG] extractFollowing: content preview: %.500s", string(content))
-		}
-	}
-
-	log.Printf("[DEBUG] extractFollowing: found %d total following", len(following))
-	return following, len(following), nil
-}
-
 func findNonFollowers(following []NonFollower, followers map[string]struct{}) []NonFollower {
 	var nonFollowers []NonFollower
 
@@ -416,6 +192,11 @@ func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if (totalFollowing == 0 || totalFollowers == 0) && isHTMLExport(zipReader) {
+		sendError(w, http.StatusBadRequest, "This export was downloaded in HTML format. Please request a new export with the format set to JSON.")
+		return
+	}
+
 	if totalFollowing == 0 {
 		sendError(w, http.StatusBadRequest, "No following data found. Please upload a valid Instagram data export.")
 		return
@@ -434,6 +215,7 @@ func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
 		TotalFollowing: totalFollowing,
 		TotalFollowers: totalFollowers,
 		Count:          len(nonFollowers),
+		RecentActivity: extractRecentActivity(zipReader, following, followers),
 		Message:        "Analysis complete",
 	}
 

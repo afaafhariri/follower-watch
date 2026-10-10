@@ -5,7 +5,6 @@ import {
   Alert,
   Button,
   Box,
-  Typography,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useState, useMemo, useEffect } from "react";
@@ -13,6 +12,7 @@ import { Layout } from "./components/Layout";
 import { FileUpload } from "./components/FileUpload";
 import { ResultsDisplay } from "./components/ResultsDisplay";
 import { ErrorDisplay } from "./components/ErrorDisplay";
+import { ExportGuide } from "./components/ExportGuide";
 import { LoginScreen } from "./components/LoginScreen";
 import { AUTH_ENDPOINTS, API_ENDPOINTS } from "./config";
 import type {
@@ -31,23 +31,6 @@ const initialInstagramState: AppState = {
   error: null,
   cachedAt: null,
 };
-
-const InstagramInstructions = () => (
-  <Box sx={{ mt: 3, textAlign: "center" }}>
-    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-      How to get your Instagram data:
-    </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 500, mx: "auto" }}>
-      1. Go to Instagram Settings → Privacy and Security → Download Data
-      <br />
-      2. Select <strong>"following and followers"</strong> only
-      <br />
-      3. Request your data in <strong>JSON format</strong> and set time to "all time"
-      <br />
-      4. Download the ZIP file when ready and upload it here
-    </Typography>
-  </Box>
-);
 
 const App = () => {
   const [instagramState, setInstagramState] =
@@ -185,7 +168,7 @@ const App = () => {
               onUploadSuccess={handleInstagramUploadSuccess}
               onUploadError={handleInstagramUploadError}
             />
-            <InstagramInstructions />
+            <ExportGuide />
           </>
         )}
 

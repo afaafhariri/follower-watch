@@ -10,6 +10,14 @@ Sign in, upload the export zip Meta gives you, and see who doesn't follow you ba
 
 The backend parses two files from Meta's export (`connections/followers_and_following/followers_*.json` and `following.json`), builds the follower set and following list, and subtracts: anyone you follow who isn't in your follower set "doesn't follow you back."
 
+If the export includes them, three more lists are shown in their own tabs:
+
+- **Recent requests** (`recent_follow_requests.json`): follow requests you sent, marked Accepted, Pending, or Not accepted by cross-checking your following and pending lists.
+- **Pending requests** (`pending_follow_requests.json`): requests you've sent that haven't been accepted yet.
+- **Unfollowed by you** (`recently_unfollowed_profiles.json`): accounts *you* unfollowed. Instagram's export has no list of who unfollowed you.
+
+Meta keeps only about the last 90 days of the "recent" lists, whatever date range you pick. The export must be requested in **JSON** format. HTML exports are detected and rejected with instructions.
+
 > **Caveat:** a deactivated account disappears from Meta's export entirely, so it's indistinguishable from an unfollow. No export field exposes account status; every tool of this kind has the same false positive. A name that "unfollows" and later "re-follows" without action on their part is usually a deactivation/reactivation cycle.
 
 
@@ -32,7 +40,8 @@ The backend parses two files from Meta's export (`connections/followers_and_foll
 ```
 follower-watch/
 ├── backend/                 # Web-app backend: Go HTTP server
-│   ├── instagram.go        # Core analysis (zip parsing, non-followers)
+│   ├── instagram.go        # Analyze handler, non-follower diff, rate limiting
+│   ├── export.go           # Meta export parsing (follow lists, requests, unfollows)
 │   ├── auth.go             # Google OAuth & session management
 │   ├── cache.go            # Redis caching layer
 │   ├── handlers.go         # Cached-result API handlers
