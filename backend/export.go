@@ -41,15 +41,15 @@ type Profile struct {
 	Timestamp  int64  `json:"timestamp,omitempty"`
 }
 
-// Follow request statuses, derived by cross-referencing the following and
-// pending lists (the export itself doesn't record the outcome).
+// Follow request statuses, derived by cross-referencing the following list
+// (the export itself doesn't record the outcome).
 const (
 	RequestAccepted    = "accepted"
-	RequestPending     = "pending"
 	RequestNotAccepted = "not_accepted"
 )
 
-// FollowRequest is a follow request the user sent recently.
+// FollowRequest is a follow request the user sent recently. Requests still
+// pending are excluded; they're listed in RecentActivity.PendingRequests.
 type FollowRequest struct {
 	Profile
 	Status string `json:"status"`
@@ -267,11 +267,12 @@ func extractRecentActivity(zipReader *zip.Reader, following []NonFollower, follo
 
 	for _, p := range readProfiles(zipReader, recentRequestsFile, nil) {
 		key := strings.ToLower(p.Username)
+		if _, ok := pendingSet[key]; ok {
+			continue
+		}
 		status := RequestNotAccepted
 		if _, ok := followingSet[key]; ok {
 			status = RequestAccepted
-		} else if _, ok := pendingSet[key]; ok {
-			status = RequestPending
 		}
 		activity.FollowRequests = append(activity.FollowRequests, FollowRequest{Profile: p, Status: status})
 	}

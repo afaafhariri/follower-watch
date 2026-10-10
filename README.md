@@ -12,7 +12,7 @@ The backend parses two files from Meta's export (`connections/followers_and_foll
 
 If the export includes them, three more lists are shown in their own tabs:
 
-- **Recent requests** (`recent_follow_requests.json`): follow requests you sent, marked Accepted, Pending, or Not accepted by cross-checking your following and pending lists.
+- **Recent requests** (`recent_follow_requests.json`): follow requests you sent, marked Accepted or Not accepted by cross-checking your following list. Requests still waiting appear only under Pending requests.
 - **Pending requests** (`pending_follow_requests.json`): requests you've sent that haven't been accepted yet.
 - **Unfollowed by you** (`recently_unfollowed_profiles.json`): accounts *you* unfollowed. Instagram's export has no list of who unfollowed you.
 

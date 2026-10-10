@@ -6,7 +6,6 @@ import {
   Button,
   Chip,
   Stack,
-  Paper,
   Link,
   Tabs,
   Tab,
@@ -20,8 +19,6 @@ import {
 import DownloadIcon from "@mui/icons-material/Download";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
-import PeopleIcon from "@mui/icons-material/People";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import SendIcon from "@mui/icons-material/Send";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
@@ -61,13 +58,11 @@ interface ListTab {
 
 const STATUS_LABELS: Record<FollowRequestStatus, string> = {
   accepted: "Accepted",
-  pending: "Pending",
   not_accepted: "Not accepted",
 };
 
-const STATUS_COLORS: Record<FollowRequestStatus, "success" | "warning" | "default"> = {
+const STATUS_COLORS: Record<FollowRequestStatus, "success" | "default"> = {
   accepted: "success",
-  pending: "warning",
   not_accepted: "default",
 };
 
@@ -219,12 +214,15 @@ export const ResultsDisplay = ({ result, onReset }: ResultsDisplayProps) => {
         description: (
           <>
             Follow requests you sent recently. <strong>Accepted</strong>: you now follow them.{" "}
-            <strong>Pending</strong>: still waiting. <strong>Not accepted</strong>: declined,
-            withdrawn, or you've since unfollowed them.
+            <strong>Not accepted</strong>: declined, withdrawn, or you've since unfollowed them.
+            Requests still waiting are in Pending requests.
           </>
         ),
         recent: true,
-        rows: toRows(activity?.follow_requests, (r) => ({ status: r.status })),
+        rows: toRows(
+          activity?.follow_requests.filter((r) => r.status in STATUS_LABELS),
+          (r) => ({ status: r.status }),
+        ),
         columns: [idColumn, usernameColumn, nameColumn, dateColumn("Requested"), statusColumn],
         sortModel: byDateDesc,
         csvFile: "recent_follow_requests.csv",
@@ -303,74 +301,6 @@ export const ResultsDisplay = ({ result, onReset }: ResultsDisplayProps) => {
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Stats Summary */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            flex: 1,
-            textAlign: "center",
-            bgcolor: "grey.50",
-            border: "1px solid",
-            borderColor: "grey.200",
-            borderRadius: 2,
-          }}
-        >
-          <PeopleIcon sx={{ color: "primary.main", fontSize: 32, mb: 1 }} />
-          <Typography variant="h5" fontWeight="bold" color="primary">
-            {result.total_followers.toLocaleString()}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Followers
-          </Typography>
-        </Paper>
-
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            flex: 1,
-            textAlign: "center",
-            bgcolor: "grey.50",
-            border: "1px solid",
-            borderColor: "grey.200",
-            borderRadius: 2,
-          }}
-        >
-          <PersonAddIcon
-            sx={{ color: "secondary.main", fontSize: 32, mb: 1 }}
-          />
-          <Typography variant="h5" fontWeight="bold" color="secondary">
-            {result.total_following.toLocaleString()}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Following
-          </Typography>
-        </Paper>
-
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            flex: 1,
-            textAlign: "center",
-            bgcolor: "error.50",
-            border: "1px solid",
-            borderColor: "error.200",
-            borderRadius: 2,
-          }}
-        >
-          <PersonOffIcon sx={{ color: "error.main", fontSize: 32, mb: 1 }} />
-          <Typography variant="h5" fontWeight="bold" color="error">
-            {result.count.toLocaleString()}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Non-Followers
-          </Typography>
-        </Paper>
-      </Stack>
-
       {/* List Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
         <Tabs
