@@ -365,3 +365,32 @@ func TestFixMetaEncoding(t *testing.T) {
 		}
 	}
 }
+
+func TestLoginCookieSecureOnlyOverHTTPS(t *testing.T) {
+	tests := []struct {
+		name       string
+		forwarded  string
+		wantSecure bool
+	}{
+		{"plain http (local dev)", "", false},
+		{"https behind proxy", "https", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/auth/google/login", nil)
+			if tt.forwarded != "" {
+				req.Header.Set("X-Forwarded-Proto", tt.forwarded)
+			}
+			w := httptest.NewRecorder()
+			HandleGoogleLogin(w, req)
+
+			cookies := w.Result().Cookies()
+			if len(cookies) == 0 {
+				t.Fatal("Expected an oauth_state cookie")
+			}
+			if cookies[0].Secure != tt.wantSecure {
+				t.Errorf("Expected Secure=%v, got %v", tt.wantSecure, cookies[0].Secure)
+			}
+		})
+	}
+}

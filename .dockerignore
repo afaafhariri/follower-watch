@@ -1,0 +1,13 @@
+# Secrets: set these as Cloud Run environment variables / secrets instead
+.env
+.env.*
+**/.env
+**/.env.*
+
+.git
+.vscode
+**/.DS_Store
+*.md
+
+**/node_modules
+**/dist
