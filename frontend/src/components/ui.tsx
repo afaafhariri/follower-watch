@@ -167,15 +167,6 @@ export const Panel = ({
 // Shared button looks. Never arrays, so they can be combined in an sx array.
 type SxStyle = Exclude<SxProps<Theme>, ReadonlyArray<unknown>>;
 
-export const primaryButtonSx: SxStyle = (t) => ({
-  bgcolor: "accent.container",
-  color: "accent.onContainer",
-  px: 2,
-  boxShadow: t.palette.mode === "dark" ? `0 0 16px -4px ${alpha("#A078FF", 0.45)}` : "none",
-  "&:hover": { bgcolor: "accent.container", filter: "brightness(1.08)" },
-  "&.Mui-disabled": { bgcolor: "surface.high", color: "text.muted" },
-});
-
 export const ghostButtonSx: SxStyle = {
   bgcolor: "surface.high",
   color: "text.primary",

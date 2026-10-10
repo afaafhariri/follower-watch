@@ -1,4 +1,4 @@
-import { ThemeProvider, CssBaseline, Box } from "@mui/material";
+import { ThemeProvider, CssBaseline, Box, type PaletteMode } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { Layout, type NavItem } from "./components/Layout";
@@ -26,6 +26,17 @@ const initialInstagramState: AppState = {
   error: null,
   cachedAt: null,
   upload: null,
+};
+
+const THEME_STORAGE_KEY = "followerwatch-theme";
+
+const readThemeChoice = (): PaletteMode | null => {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "dark" || stored === "light" ? stored : null;
+  } catch {
+    return null;
+  }
 };
 
 const scrollToId = (id: string) =>
@@ -60,6 +71,19 @@ const App = () => {
   });
 
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)", { noSsr: true });
+  // Explicit choice from the header toggle; null follows the system setting
+  const [themeChoice, setThemeChoice] = useState<PaletteMode | null>(readThemeChoice);
+  const mode: PaletteMode = themeChoice ?? (prefersDarkMode ? "dark" : "light");
+
+  const toggleTheme = () => {
+    const next = mode === "dark" ? "light" : "dark";
+    setThemeChoice(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // Storage unavailable (private mode); the choice lasts for this visit
+    }
+  };
 
   useEffect(() => {
     fetch(AUTH_ENDPOINTS.me, { credentials: "include" })
@@ -103,10 +127,7 @@ const App = () => {
     );
   };
 
-  const theme = useMemo(
-    () => createAppTheme(prefersDarkMode ? "dark" : "light"),
-    [prefersDarkMode],
-  );
+  const theme = useMemo(() => createAppTheme(mode), [mode]);
 
   // --- Instagram handlers ---
   const { upload, progress } = useExportUpload(API_ENDPOINTS.analyze, {
@@ -233,7 +254,8 @@ const App = () => {
       <Layout
         user={auth.user}
         nav={nav}
-        onUpload={auth.authenticated && s.status !== "uploading" ? pickFile : undefined}
+        themeMode={mode}
+        onToggleTheme={toggleTheme}
         onLogout={handleLogout}
       >
         {auth.loading ? null : !auth.authenticated ? (
