@@ -39,14 +39,14 @@ Meta keeps only about the last 90 days of the "recent" lists, whatever date rang
 
 ```
 follower-watch/
-├── backend/                 # Web-app backend: Go HTTP server
+├── server/                  # Web-app backend: Go HTTP server
 │   ├── instagram.go        # Analyze handler, non-follower diff, rate limiting
 │   ├── export.go           # Meta export parsing (follow lists, requests, unfollows)
 │   ├── auth.go             # Google OAuth & session management
 │   ├── cache.go            # Redis caching layer
 │   ├── handlers.go         # Cached-result API handlers
 │   └── cmd/main.go         # HTTP server entrypoint
-├── frontend/                # React + TypeScript + MUI web UI
+├── web/                     # React + TypeScript + MUI web UI
 ├── docker-compose.yml       # nginx + Go + Redis
 └── README.md
 ```
@@ -61,11 +61,11 @@ follower-watch/
 
    ```bash
    docker run -d --name redis -p 6379:6379 redis:alpine   # optional; caching degrades gracefully
-   cd backend && cp .env.example .env                     # fill in OAuth credentials
+   cd server && cp .env.example .env                      # fill in OAuth credentials
    go run cmd/main.go
    ```
 
-   In a second terminal: `cd frontend && npm install && npm run dev`, then open http://localhost:3000.
+   In a second terminal: `cd web && npm install && npm run dev`, then open http://localhost:3000.
 
 3. **Docker deployment** — create a root `.env` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL`, `SESSION_SECRET`, `FRONTEND_URL`, then:
 
@@ -76,7 +76,7 @@ follower-watch/
 ### Tests
 
 ```bash
-cd backend && go test -v ./...
+cd server && go test -v ./...
 ```
 
 ## Environment Variables

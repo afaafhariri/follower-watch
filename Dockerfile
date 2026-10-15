@@ -1,15 +1,15 @@
 # Single image for production: the Go server serves both the API and the built
 # frontend from one origin, which the Google sign-in cookie requires.
-# (docker-compose.yml uses backend/Dockerfile and frontend/Dockerfile instead.)
+# (docker-compose.yml uses server/Dockerfile and web/Dockerfile instead.)
 
 FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json ./
+COPY web/package.json web/package-lock.json ./
 RUN npm ci
 
-COPY frontend/ .
+COPY web/ .
 
 ENV VITE_API_URL=/api
 RUN npm run build
@@ -18,10 +18,10 @@ FROM golang:1.25-alpine AS backend
 
 WORKDIR /app
 
-COPY backend/go.mod backend/go.sum ./
+COPY server/go.mod server/go.sum ./
 RUN go mod download
 
-COPY backend/ .
+COPY server/ .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/main.go
 
