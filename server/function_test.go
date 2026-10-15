@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func createTestZip(t *testing.T, files map[string]string) []byte {
@@ -392,5 +393,87 @@ func TestLoginCookieSecureOnlyOverHTTPS(t *testing.T) {
 				t.Errorf("Expected Secure=%v, got %v", tt.wantSecure, cookies[0].Secure)
 			}
 		})
+	}
+}
+
+// resetRateLimiter clears rate limiter state and restores it after the test.
+func resetRateLimiter(t *testing.T) {
+	t.Helper()
+	rateLimitMu.Lock()
+	savedTracker, savedSweep := requestTracker, lastRateLimitSweep
+	requestTracker = make(map[string][]time.Time)
+	lastRateLimitSweep = time.Time{}
+	rateLimitMu.Unlock()
+
+	t.Cleanup(func() {
+		rateLimitMu.Lock()
+		requestTracker, lastRateLimitSweep = savedTracker, savedSweep
+		rateLimitMu.Unlock()
+	})
+}
+
+func TestCheckRateLimit_EnforcesLimit(t *testing.T) {
+	resetRateLimiter(t)
+	start := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	for i := 0; i < maxRequests; i++ {
+		if !checkRateLimitAt("1.1.1.1", start.Add(time.Duration(i)*time.Second)) {
+			t.Fatalf("request %d should be allowed", i+1)
+		}
+	}
+	if checkRateLimitAt("1.1.1.1", start.Add(time.Minute)) {
+		t.Error("request over the limit should be rejected")
+	}
+	if !checkRateLimitAt("2.2.2.2", start.Add(time.Minute)) {
+		t.Error("a different IP should not be affected by another IP's limit")
+	}
+	if !checkRateLimitAt("1.1.1.1", start.Add(windowDuration+time.Minute)) {
+		t.Error("request should be allowed again once the window has passed")
+	}
+}
+
+func TestCheckRateLimit_RemovesStaleEntries(t *testing.T) {
+	resetRateLimiter(t)
+	start := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	for _, ip := range []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"} {
+		checkRateLimitAt(ip, start)
+	}
+	checkRateLimitAt("4.4.4.4", start.Add(windowDuration-time.Second))
+	if len(requestTracker) != 4 {
+		t.Fatalf("expected 4 tracked IPs, got %d", len(requestTracker))
+	}
+
+	// After the window, a request from a new IP should sweep the idle IPs
+	later := start.Add(windowDuration + time.Second)
+	checkRateLimitAt("5.5.5.5", later)
+
+	for _, ip := range []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"} {
+		if _, ok := requestTracker[ip]; ok {
+			t.Errorf("expected stale entry for %s to be removed", ip)
+		}
+	}
+	if got := len(requestTracker["4.4.4.4"]); got != 1 {
+		t.Errorf("expected 4.4.4.4 to keep 1 request still in the window, got %d", got)
+	}
+	if got := len(requestTracker["5.5.5.5"]); got != 1 {
+		t.Errorf("expected 5.5.5.5 to have 1 request, got %d", got)
+	}
+	if len(requestTracker) != 2 {
+		t.Errorf("expected 2 tracked IPs after sweep, got %d", len(requestTracker))
+	}
+}
+
+func TestCheckRateLimit_PrunesExpiredRequestsForIP(t *testing.T) {
+	resetRateLimiter(t)
+	start := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	for i := 0; i < 3; i++ {
+		checkRateLimitAt("1.1.1.1", start.Add(time.Duration(i)*time.Second))
+	}
+	checkRateLimitAt("1.1.1.1", start.Add(windowDuration+time.Minute))
+
+	if got := len(requestTracker["1.1.1.1"]); got != 1 {
+		t.Errorf("expected only the latest request to remain, got %d", got)
 	}
 }
