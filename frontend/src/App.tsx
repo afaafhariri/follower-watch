@@ -211,7 +211,7 @@ const App = () => {
     return (
       <>
         <HeroShell>
-          <HeroIntro title="Find who doesn't follow you back">
+          <HeroIntro title="Find Who Unfollowed You On Instagram">
             <IntroCopy />
           </HeroIntro>
         </HeroShell>
