@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	followercount "github.com/followercount/backend"
+	followercount "github.com/afaafhariri/follower-watch/server"
 
 	"github.com/joho/godotenv"
 )
@@ -55,7 +55,7 @@ func main() {
 	// Serve frontend static files if the directory exists
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
-		staticDir = "../frontend/dist"
+		staticDir = "../web/dist"
 	}
 	if info, err := os.Stat(staticDir); err == nil && info.IsDir() {
 		log.Printf("Serving static files from %s", staticDir)

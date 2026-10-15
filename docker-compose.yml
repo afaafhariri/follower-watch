@@ -7,8 +7,8 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  backend:
-    build: ./backend
+  server:
+    build: ./server
     ports:
       - "8080:8080"
     environment:
@@ -24,15 +24,15 @@ services:
       - redis
     restart: unless-stopped
 
-  frontend:
+  web:
     build:
-      context: ./frontend
+      context: ./web
       args:
         VITE_API_URL: /api
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - server
     restart: unless-stopped
 
 volumes:

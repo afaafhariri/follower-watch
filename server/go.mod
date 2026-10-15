@@ -1,4 +1,4 @@
-module github.com/followercount/backend
+module github.com/afaafhariri/follower-watch/server
 
 go 1.25.0
 
