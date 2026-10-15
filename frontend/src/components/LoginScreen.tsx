@@ -13,7 +13,7 @@ export const LoginScreen = () => {
     <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
       <Box sx={{ width: "100%", maxWidth: 880, mx: "auto" }}>
         <HeroShell>
-          <HeroIntro title="Find who doesn't follow you back">
+          <HeroIntro title="Find Who Unfollowed You On Instagram & More">
             <IntroCopy />
           </HeroIntro>
           <Box>

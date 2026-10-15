@@ -43,7 +43,7 @@ const DEVICES: { key: Device; label: string; icon: React.ReactNode }[] = [
   { key: "web", label: "Web", icon: <LaptopIcon sx={{ fontSize: 16 }} /> },
 ];
 
-export const ExportGuide = ({ title = "How to get your Instagram data" }: ExportGuideProps) => {
+export const ExportGuide = ({ title = "How to get your followers & following data" }: ExportGuideProps) => {
   const [device, setDevice] = useState<Device>("mobile");
   const steps = [...OPEN_EXPORT_STEPS[device], ...CONFIGURE_STEPS];
 
