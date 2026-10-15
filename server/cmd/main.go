@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	followercount "github.com/afaafhariri/follower-watch/server"
 
@@ -63,8 +64,19 @@ func main() {
 		mux.Handle("/", fs)
 	}
 
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		// Generous enough for a 50 MB upload over a slow connection
+		ReadTimeout: 5 * time.Minute,
+		// Covers reading the body plus processing, so it must exceed ReadTimeout
+		WriteTimeout: 6 * time.Minute,
+		IdleTimeout:  2 * time.Minute,
+	}
+
 	log.Printf("Starting server on port %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
