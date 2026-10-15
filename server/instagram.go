@@ -36,8 +36,10 @@ type APIResponse struct {
 var (
 	rateLimitMu    sync.Mutex
 	requestTracker = make(map[string][]time.Time)
-	maxRequests    = 10
-	windowDuration = time.Minute * 5
+	// lastRateLimitSweep is when stale requestTracker entries were last removed
+	lastRateLimitSweep time.Time
+	maxRequests        = 10
+	windowDuration     = time.Minute * 5
 )
 
 func getEnv(key string) string {
@@ -69,26 +71,50 @@ func setCORSHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkRateLimit(ip string) bool {
+	return checkRateLimitAt(ip, time.Now())
+}
+
+// checkRateLimitAt records a request from ip at now and reports whether it is
+// within the limit. Entries for IPs with no requests left in the window are
+// removed so requestTracker does not grow with every IP ever seen.
+func checkRateLimitAt(ip string, now time.Time) bool {
 	rateLimitMu.Lock()
 	defer rateLimitMu.Unlock()
 
-	now := time.Now()
 	cutoff := now.Add(-windowDuration)
 
-	var validRequests []time.Time
-	for _, t := range requestTracker[ip] {
-		if t.After(cutoff) {
-			validRequests = append(validRequests, t)
+	// Periodically sweep IPs that have not been seen within the window.
+	if now.Sub(lastRateLimitSweep) >= windowDuration {
+		for trackedIP, times := range requestTracker {
+			if remaining := pruneRequests(times, cutoff); len(remaining) == 0 {
+				delete(requestTracker, trackedIP)
+			} else {
+				requestTracker[trackedIP] = remaining
+			}
 		}
+		lastRateLimitSweep = now
 	}
-	requestTracker[ip] = validRequests
+
+	validRequests := pruneRequests(requestTracker[ip], cutoff)
 
 	if len(validRequests) >= maxRequests {
+		requestTracker[ip] = validRequests
 		return false
 	}
 
-	requestTracker[ip] = append(requestTracker[ip], now)
+	requestTracker[ip] = append(validRequests, now)
 	return true
+}
+
+// pruneRequests returns the request times that fall after cutoff.
+func pruneRequests(times []time.Time, cutoff time.Time) []time.Time {
+	var valid []time.Time
+	for _, t := range times {
+		if t.After(cutoff) {
+			valid = append(valid, t)
+		}
+	}
+	return valid
 }
 
 func getClientIP(r *http.Request) string {
