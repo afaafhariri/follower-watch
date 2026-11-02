@@ -268,6 +268,13 @@ export const Layout = ({ children, user, nav, themeMode, onToggleTheme, onLogout
           <Box sx={{ display: "flex", alignItems: "center", gap: 3, color: "text.muted", fontSize: 12 }}>
             <span>MIT License</span>
             <Link
+              href="/privacy.html"
+              underline="none"
+              sx={{ color: "inherit", "&:hover": { color: "accent.primary" } }}
+            >
+              Privacy
+            </Link>
+            <Link
               href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
