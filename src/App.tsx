@@ -8,11 +8,11 @@ import { ErrorDisplay } from "./components/ErrorDisplay";
 import { ExportGuide } from "./components/ExportGuide";
 import { ArchiveBar } from "./components/ArchiveBar";
 import { InfoSidebar } from "./components/InfoSidebar";
-import { CacheCapsule, HeroIntro, HeroShell, IntroCopy, StatCards } from "./components/Hero";
+import { HeroIntro, HeroShell, IntroCopy, StatCards } from "./components/Hero";
 import { useExportAnalysis } from "./hooks/useExportAnalysis";
 import { clearSavedResult, loadSavedResult, saveResult } from "./lib/savedResult";
 import { createAppTheme } from "./theme";
-import type { AppState } from "./types";
+import type { AnalysisResult, AppState } from "./types";
 
 const initialInstagramState: AppState = {
   status: "idle",
@@ -37,7 +37,7 @@ const scrollToId = (id: string) =>
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 // Main column + info sidebar, stacked below lg
-const Workspace = ({ children }: { children: ReactNode }) => (
+const Workspace = ({ children, result }: { children: ReactNode; result?: AnalysisResult }) => (
   <Box
     sx={{
       display: "grid",
@@ -47,7 +47,7 @@ const Workspace = ({ children }: { children: ReactNode }) => (
     }}
   >
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>{children}</Box>
-    <InfoSidebar />
+    <InfoSidebar result={result} />
   </Box>
 );
 
@@ -145,26 +145,16 @@ const App = () => {
     if (s.status === "success" && s.result) {
       return (
         <>
-          <HeroShell id="overview">
-            <HeroIntro
-              title="Find Who Unfollowed You On Instagram"
-              aside={s.cachedAt ? <CacheCapsule cachedAt={s.cachedAt} /> : undefined}
-            >
-              <IntroCopy />
-            </HeroIntro>
-            <StatCards
-              result={s.result}
-              analyzedAt={s.cachedAt ? new Date(s.cachedAt * 1000) : new Date()}
-            />
-          </HeroShell>
           <ArchiveBar
+            result={s.result}
             upload={s.upload}
             cachedAt={s.cachedAt}
             onPickFile={pickFile}
             onDropFile={upload}
             onClearCache={handleClearInstagramCache}
           />
-          <Workspace>
+          <StatCards result={s.result} />
+          <Workspace result={s.result}>
             <ResultsDisplay result={s.result} activeTab={activeTab} onTabChange={setActiveTab} />
           </Workspace>
         </>

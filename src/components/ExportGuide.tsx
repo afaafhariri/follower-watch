@@ -78,17 +78,21 @@ export const ExportGuide = ({ title = "How to get your followers & following dat
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setDevice(d.key)}
-                sx={{
+                sx={(t) => ({
                   gap: 0.75,
                   px: 1.5,
                   py: 0.75,
                   borderRadius: "8px",
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 500,
                   ...(selected
-                    ? { bgcolor: "accent.container", color: "accent.onContainer" }
+                    ? {
+                        color: "text.primary",
+                        bgcolor: t.palette.mode === "dark" ? "surface.high" : "surface.card",
+                        boxShadow: t.shadows[1],
+                      }
                     : { color: "text.secondary", "&:hover": { color: "text.primary" } }),
-                }}
+                })}
               >
                 {d.icon}
                 {d.label}
@@ -110,9 +114,9 @@ export const ExportGuide = ({ title = "How to get your followers & following dat
                 display: "grid",
                 placeItems: "center",
                 fontSize: 10,
-                fontWeight: 700,
-                bgcolor: alpha(t.palette.primary.main, 0.15),
-                color: "accent.primary",
+                fontWeight: 600,
+                bgcolor: t.palette.surface.container,
+                color: "text.primary",
               })}
             >
               {i + 1}
@@ -132,7 +136,7 @@ export const ExportGuide = ({ title = "How to get your followers & following dat
           display: "flex",
           gap: 1,
           alignItems: "flex-start",
-          bgcolor: alpha(t.palette.state.warning, 0.1),
+          bgcolor: t.palette.mode === "dark" ? alpha(t.palette.state.warning, 0.12) : t.palette.state.warningSubtle,
           color: "state.warning",
         })}
       >

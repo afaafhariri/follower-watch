@@ -1,449 +1,279 @@
 import type { ReactNode } from "react";
 import { Box, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import NoAccountsOutlinedIcon from "@mui/icons-material/NoAccountsOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
-import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
-import ScheduleSendOutlinedIcon from "@mui/icons-material/ScheduleSendOutlined";
-import SyncAltIcon from "@mui/icons-material/SyncAlt";
-import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
-import MemoryIcon from "@mui/icons-material/Memory";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-import { Dot, FileTag, Micro, Mono, toneColor, type Tone } from "./ui";
+import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
+import OutgoingMailIcon from "@mui/icons-material/OutgoingMail";
+import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { Badge, FileTag, IconTile, Micro, Panel, toneColor, type Tone } from "./ui";
 import type { AnalysisResult } from "../types";
 
+// The three privacy promises shown above the hero and the archive card
+export const PrivacyBadges = () => (
+  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+    <Badge tone="positive" icon={<LockOutlinedIcon />}>
+      100% private — processed locally
+    </Badge>
+    <Badge icon={<NoAccountsOutlinedIcon />}>No password needed</Badge>
+    <Badge icon={<CheckCircleOutlineIcon />}>Data stays on device</Badge>
+  </Box>
+);
 
-// Gradient hero card with soft background glows
-export const HeroShell = ({
-  children,
-  id,
-}: {
-  children: ReactNode;
-  id?: string;
-}) => (
-  <Box
+// Intro card shown before an export has been analyzed
+export const HeroShell = ({ children, id }: { children: ReactNode; id?: string }) => (
+  <Panel
     id={id}
     component="section"
-    sx={(t) => ({
+    sx={{
       position: "relative",
       overflow: "hidden",
-      borderRadius: "12px",
-      p: { xs: 2.5, md: 5 },
-      border: `1px solid ${t.palette.surface.border}`,
-      background: `linear-gradient(135deg, ${t.palette.surface.card}, ${t.palette.surface.low} 50%, ${t.palette.surface.base})`,
-      boxShadow:
-        t.palette.mode === "dark"
-          ? "0 20px 40px -16px rgba(0,0,0,0.6)"
-          : "0 8px 24px -12px rgba(15,23,42,0.12)",
-      scrollMarginTop: 88,
-    })}
+      p: { xs: 2.5, md: 4 },
+      bgcolor: "surface.low",
+      scrollMarginTop: 128,
+    }}
   >
     <Box
       aria-hidden
       sx={(t) => ({
+        display: t.palette.mode === "dark" ? "block" : "none",
         position: "absolute",
-        right: -96,
-        top: -96,
-        width: 384,
-        height: 384,
+        right: -80,
+        top: -80,
+        width: 288,
+        height: 288,
         borderRadius: "50%",
-        bgcolor: alpha(t.palette.primary.main, 0.12),
+        bgcolor: "rgba(0, 112, 243, 0.1)",
         filter: "blur(64px)",
         pointerEvents: "none",
       })}
     />
-    <Box
-      aria-hidden
-      sx={(t) => ({
-        position: "absolute",
-        left: -80,
-        bottom: -80,
-        width: 320,
-        height: 320,
-        borderRadius: "50%",
-        bgcolor: alpha(t.palette.secondary.main, 0.12),
-        filter: "blur(64px)",
-        pointerEvents: "none",
-      })}
-    />
-    <Box
-      sx={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-      }}
-    >
-      {children}
-    </Box>
-  </Box>
+    <Box sx={{ position: "relative", display: "flex", flexDirection: "column", gap: 2 }}>{children}</Box>
+  </Panel>
 );
 
 interface HeroIntroProps {
   title: string;
   children: ReactNode;
-  aside?: ReactNode;
 }
 
-export const HeroIntro = ({ title, children, aside }: HeroIntroProps) => (
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: { xs: "column", lg: "row" },
-      alignItems: { lg: "center" },
-      justifyContent: "space-between",
-      gap: 2,
-    }}
-  >
-    <Box
+export const HeroIntro = ({ title, children }: HeroIntroProps) => (
+  <Box sx={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 1.5 }}>
+    <PrivacyBadges />
+    <Typography
+      variant="h1"
       sx={{
-        maxWidth: 720,
-        display: "flex",
-        flexDirection: "column",
-        gap: 1.25,
+        fontSize: { xs: 32, md: 48 },
+        lineHeight: { xs: "36px", md: "52px" },
+        letterSpacing: { xs: "-0.03em", md: "-0.04em" },
+        color: "text.primary",
       }}
     >
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-        <Box
-          sx={(t) => ({
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 0.75,
-            px: 1.25,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: alpha(t.palette.primary.main, 0.12),
-            color: "accent.primary",
-          })}
-        >
-          <Dot tone="accent" animate />
-          <Micro>On-device diff</Micro>
-        </Box>
-        <Box
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 0.5,
-            px: 1.25,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "surface.container",
-            color: "text.secondary",
-          }}
-        >
-          <ShieldOutlinedIcon sx={{ fontSize: 14, color: "state.positive" }} />
-          <Mono sx={{ fontSize: 10 }}>No Instagram password • No scraping</Mono>
-        </Box>
-      </Box>
-      <Typography
-        variant="h1"
-        sx={{
-          fontSize: { xs: 30, md: 40 },
-          lineHeight: { xs: "38px", md: "48px" },
-          color: "text.primary",
-        }}
-      >
-        {title}
-      </Typography>
-      <Typography
-        sx={{ fontSize: 14, lineHeight: 1.7, color: "text.secondary" }}
-      >
-        {children}
-      </Typography>
-    </Box>
-    {aside}
+      {title}
+    </Typography>
+    <Typography sx={{ fontSize: 16, lineHeight: "24px", color: "text.secondary" }}>{children}</Typography>
   </Box>
 );
 
 export const IntroCopy = () => (
   <>
-    Analyses <FileTag>followers</FileTag> and <FileTag>following</FileTag> from
-    your official Meta export. Your file is processed in your browser and
-    never uploaded.
+    Analyses <FileTag>followers</FileTag> and <FileTag>following</FileTag> from your official Meta export. Your
+    file is processed in your browser and never uploaded.
   </>
 );
 
-// Shown when the result was loaded from this browser's storage
-export const CacheCapsule = ({ cachedAt }: { cachedAt: number }) => {
-  return (
-    <Box
-      sx={(t) => ({
-        flexShrink: 0,
-        alignSelf: { xs: "flex-start", lg: "center" },
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        p: 1,
-        pr: 1.5,
-        borderRadius: "12px",
-        bgcolor: alpha(t.palette.surface.glass, 0.8),
-        border: `1px solid ${t.palette.surface.border}`,
-        backdropFilter: "blur(12px)",
-      })}
-    >
-      <Box
-        sx={(t) => ({
-          width: 36,
-          height: 36,
-          borderRadius: "8px",
-          display: "grid",
-          placeItems: "center",
-          bgcolor: alpha(t.palette.state.positive, 0.15),
-          color: "state.positive",
-        })}
-      >
-        <MemoryIcon sx={{ fontSize: 20 }} />
-      </Box>
-      <Box sx={{ display: "flex", flexDirection: "column" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-            Saved result
-          </Typography>
-          <Dot />
-        </Box>
-        <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-          Saved in this browser • {new Date(cachedAt * 1000).toLocaleDateString()}
-        </Mono>
-      </Box>
-    </Box>
-  );
-};
-
 interface StatCardProps {
-  label: string;
+  label: ReactNode;
   icon: ReactNode;
+  iconTone?: Tone;
   value: string;
-  unit: string;
+  valueTone?: Tone;
   footer: ReactNode;
-  highlight?: Tone;
 }
 
-const StatCard = ({
-  label,
-  icon,
-  value,
-  unit,
-  footer,
-  highlight,
-}: StatCardProps) => (
-  <Box
-    sx={(t) => ({
-      position: "relative",
-      p: 2,
-      borderRadius: "12px",
-      bgcolor: alpha(t.palette.surface.card, 0.9),
-      border: `1px solid ${t.palette.surface.border}`,
+const StatCard = ({ label, icon, iconTone, value, valueTone, footer }: StatCardProps) => (
+  <Panel
+    sx={{
+      p: 2.5,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      gap: 2,
       transition: "background-color .2s",
-      "&:hover": { bgcolor: t.palette.surface.glass },
-      ...(highlight && {
-        borderTop: `2px solid ${toneColor(t, highlight).fg}`,
-      }),
-    })}
+      "&:hover": { bgcolor: "surface.low" },
+    }}
   >
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        pb: 0.5,
-        color: highlight ? (t) => toneColor(t, highlight).fg : "text.secondary",
-      }}
-    >
-      <Micro>{label}</Micro>
-      {icon}
-    </Box>
-    <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.75, pt: 0.5 }}>
-      <Typography
-        sx={{
-          fontSize: 28,
-          fontWeight: 800,
-          lineHeight: "32px",
-          letterSpacing: "-0.02em",
-          color: highlight ? (t) => toneColor(t, highlight).fg : "text.primary",
-        }}
-      >
-        {value}
-      </Typography>
-      <Typography sx={{ fontSize: 12, color: "text.muted" }}>{unit}</Typography>
+    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.muted" }}>{label}</Box>
+        <Typography
+          sx={{
+            mt: 0.5,
+            fontSize: 32,
+            fontWeight: 600,
+            lineHeight: "38px",
+            letterSpacing: "-0.03em",
+            color: valueTone ? (t) => toneColor(t, valueTone).fg : "text.primary",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
+      <IconTile tone={iconTone}>{icon}</IconTile>
     </Box>
     <Box
       sx={{
-        mt: 1.25,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 1,
         flexWrap: "wrap",
+        fontSize: 12,
+        lineHeight: "16px",
         color: "text.secondary",
       }}
     >
       {footer}
     </Box>
-  </Box>
+  </Panel>
 );
 
-const MiniChip = ({ tone, children }: { tone: Tone; children: ReactNode }) => (
-  <Mono
+const CountChip = ({ tone, children }: { tone: Tone; children: ReactNode }) => (
+  <Box
+    component="span"
     sx={(t) => ({
       px: 0.75,
-      py: 0.25,
-      borderRadius: "4px",
-      fontSize: 10,
-      fontWeight: 700,
+      py: 0.125,
+      borderRadius: "6px",
+      fontSize: 12,
+      fontWeight: 500,
       bgcolor: toneColor(t, tone).bg,
       color: toneColor(t, tone).fg,
     })}
   >
     {children}
-  </Mono>
+  </Box>
 );
 
 const fmt = (n: number) => n.toLocaleString();
 
-interface StatCardsProps {
-  result: AnalysisResult;
-  analyzedAt: Date;
-}
-
-export const StatCards = ({ result, analyzedAt }: StatCardsProps) => {
+export const StatCards = ({ result }: { result: AnalysisResult }) => {
   const activity = result.recent_activity;
-  const accepted =
-    activity?.follow_requests.filter((r) => r.status === "accepted").length ??
-    0;
-  const notAccepted =
-    activity?.follow_requests.filter((r) => r.status === "not_accepted")
-      .length ?? 0;
+  const accepted = activity?.follow_requests.filter((r) => r.status === "accepted").length ?? 0;
+  const notAccepted = activity?.follow_requests.filter((r) => r.status === "not_accepted").length ?? 0;
   const pending = activity?.pending_requests.length ?? 0;
   const mutual = Math.max(result.total_following - result.count, 0);
-  const share =
-    result.total_following > 0
-      ? (result.count / result.total_following) * 100
-      : 0;
+  const share = result.total_following > 0 ? (result.count / result.total_following) * 100 : 0;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+    <Box id="overview" sx={{ display: "flex", flexDirection: "column", gap: 2, scrollMarginTop: 128 }}>
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            lg: "repeat(4, 1fr)",
-          },
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
           gap: 2,
         }}
       >
         <StatCard
-          label="Total following"
-          icon={
-            <PersonAddAltOutlinedIcon
-              sx={{ fontSize: 20, color: "accent.primary" }}
-            />
-          }
+          label={<Micro>Following</Micro>}
+          icon={<PersonAddAltOutlinedIcon />}
+          iconTone="accent"
           value={fmt(result.total_following)}
-          unit="accounts"
           footer={
             <>
-              <Mono
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  fontSize: 10,
-                }}
-              >
-                <EventAvailableOutlinedIcon
-                  sx={{ fontSize: 13, color: "state.positive" }}
-                />
-                {analyzedAt.toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </Mono>
+              <span>People you follow</span>
+              <Box component="span" sx={{ color: "text.muted" }}>
+                Your account
+              </Box>
             </>
           }
         />
         <StatCard
-          label="Total followers"
-          icon={
-            <GroupOutlinedIcon sx={{ fontSize: 20, color: "accent.tertiary" }} />
-          }
+          label={<Micro>Followers</Micro>}
+          icon={<GroupOutlinedIcon />}
+          iconTone="positive"
           value={fmt(result.total_followers)}
-          unit="accounts"
           footer={
             <>
-              <Mono
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  fontSize: 10,
-                  color: "accent.tertiary",
-                }}
-              >
-                <SyncAltIcon sx={{ fontSize: 13 }} />
+              <span>People following you</span>
+              <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, color: "state.positive" }}>
+                <VerifiedOutlinedIcon sx={{ fontSize: 14 }} />
                 {fmt(mutual)} mutual
-              </Mono>
+              </Box>
             </>
           }
         />
         <StatCard
-          label="Don't follow back"
-          icon={<PersonOffOutlinedIcon sx={{ fontSize: 20 }} />}
+          label={
+            <>
+              <Micro>Don't follow back</Micro>
+              <CountChip tone="negative">{fmt(result.count)}</CountChip>
+            </>
+          }
+          icon={<PersonRemoveOutlinedIcon />}
+          iconTone="negative"
           value={fmt(result.count)}
-          unit="accounts"
-          highlight="negative"
+          valueTone="negative"
           footer={
-            <Mono sx={{ fontSize: 10 }}>
-              {share.toFixed(1)}% of the accounts you follow
-            </Mono>
+            <>
+              <Box component="span" sx={{ color: "state.negative" }}>
+                Not following you back
+              </Box>
+              <span>{share.toFixed(1)}% of following</span>
+            </>
           }
         />
         <StatCard
-          label="Recent requests"
-          icon={
-            <ScheduleSendOutlinedIcon
-              sx={{ fontSize: 20, color: "state.warning" }}
-            />
-          }
+          label={<Micro>Recent requests</Micro>}
+          icon={<OutgoingMailIcon />}
+          iconTone="warning"
           value={activity ? fmt(accepted + notAccepted + pending) : "—"}
-          unit="sent, last ~90 days"
           footer={
             activity ? (
-              <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-                <MiniChip tone="positive">{accepted} acc</MiniChip>
-                <MiniChip tone="warning">{pending} pnd</MiniChip>
-                <MiniChip tone="negative">{notAccepted} not acc</MiniChip>
+              <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                <Box component="span" sx={{ color: "state.positive", fontWeight: 500 }}>
+                  {accepted} accepted
+                </Box>
+                <span aria-hidden>•</span>
+                <Box component="span" sx={{ color: "state.warning", fontWeight: 500 }}>
+                  {pending} pending
+                </Box>
+                <span aria-hidden>•</span>
+                <Box component="span" sx={{ color: "state.negative", fontWeight: 500 }}>
+                  {notAccepted} not accepted
+                </Box>
               </Box>
             ) : (
-              <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-                Re-upload to see
-              </Mono>
+              <Box component="span" sx={{ color: "text.muted" }}>
+                Upload a new export to see
+              </Box>
             )
           }
         />
       </Box>
-      <Box
-        sx={(t) => ({
+      <Panel
+        sx={{
+          px: 2.5,
+          py: 2,
           display: "flex",
           alignItems: "flex-start",
-          gap: 1,
-          px: 1.5,
-          py: 1,
-          borderRadius: "8px",
-          bgcolor: toneColor(t, "warning").bg,
-          color: toneColor(t, "warning").fg,
-        })}
+          gap: 1.5,
+          bgcolor: "surface.low",
+        }}
       >
-        <WarningAmberRoundedIcon sx={{ fontSize: 18, mt: "1px" }} />
-        <Typography sx={{ fontSize: 12, fontWeight: 500, color: "inherit" }}>
-          Following, follower and don't-follow-back counts may be higher than
-          what the Instagram app shows, because the export also includes
-          deactivated accounts.
-        </Typography>
-      </Box>
+        <InfoOutlinedIcon sx={{ fontSize: 18, mt: "1px", color: "state.warning" }} />
+        <Box>
+          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Deactivated accounts are counted</Typography>
+          <Typography sx={{ fontSize: 12, lineHeight: "18px", color: "text.secondary" }}>
+            Following, follower and don't-follow-back counts may be higher than what the Instagram app shows,
+            because the export also includes deactivated accounts.
+          </Typography>
+        </Box>
+      </Panel>
     </Box>
   );
 };

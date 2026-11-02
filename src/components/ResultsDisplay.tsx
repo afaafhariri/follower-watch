@@ -12,19 +12,15 @@ import {
   Snackbar,
   Tooltip,
   Typography,
+  type Theme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CloseIcon from "@mui/icons-material/Close";
-import CheckIcon from "@mui/icons-material/Check";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import RemoveIcon from "@mui/icons-material/Remove";
+import NorthEastIcon from "@mui/icons-material/NorthEast";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { MONO } from "../theme";
-import { Mono, Panel, Pill, ghostButtonSx, toneColor, type Tone } from "./ui";
+import { FileTag, Mono, Panel, Pill, ghostButtonSx, toneColor, type Tone } from "./ui";
 import type { AnalysisResult, FollowRequestStatus, Profile } from "../types";
 
 export type TabKey = "non_followers" | "follow_requests" | "pending_requests" | "unfollowed";
@@ -32,10 +28,10 @@ export type TabKey = "non_followers" | "follow_requests" | "pending_requests" | 
 type SortKey = "az" | "za" | "newest" | "oldest";
 
 const SORT_LABELS: Record<SortKey, string> = {
-  az: "Sort: A–Z",
-  za: "Sort: Z–A",
-  newest: "Sort: Newest first",
-  oldest: "Sort: Oldest first",
+  az: "Alphabetical (A–Z)",
+  za: "Alphabetical (Z–A)",
+  newest: "Date: Newest first",
+  oldest: "Date: Oldest first",
 };
 
 const PAGE_SIZE = 20;
@@ -58,7 +54,9 @@ interface ListTab {
   rows: ListRow[];
   source: string;
   dateVerb: string;
+  dateHeading: string;
   defaultSort: SortKey;
+  countTone: Tone;
   badge: (row: ListRow) => { label: string; tone: Tone };
   csvFile: string;
   csvHeaders: string[];
@@ -71,15 +69,15 @@ const STATUS_LABELS: Record<FollowRequestStatus, string> = {
 };
 
 const isoDate = (ts?: number) => (ts ? new Date(ts * 1000).toISOString() : "");
-const monthYear = (ts: number) =>
-  new Date(ts * 1000).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+const fullDate = (ts: number) =>
+  new Date(ts * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 const relative = (ts: number) => {
   const days = Math.floor((Date.now() / 1000 - ts) / 86400);
   if (days < 1) return "today";
-  if (days < 60) return `${days}d ago`;
-  if (days < 730) return `${Math.floor(days / 30)}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
+  if (days < 60) return `${days} days ago`;
+  if (days < 730) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)} years ago`;
 };
 
 const toRows = <T extends Profile>(
@@ -122,14 +120,6 @@ const pageList = (page: number, count: number): (number | "…")[] => {
   return out;
 };
 
-const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #AA0266, #D0BCFF)",
-  "linear-gradient(135deg, #A078FF, #FFB0CD)",
-  "linear-gradient(135deg, #6366F1, #8B5CF6)",
-  "linear-gradient(135deg, #EC4899, #F59E0B)",
-  "linear-gradient(135deg, #0EA5E9, #8B5CF6)",
-];
-
 const initials = (row: ListRow) => {
   const source = row.name?.trim() || row.username.replace(/[._]+/g, " ");
   const parts = source.split(/\s+/).filter(Boolean);
@@ -138,51 +128,65 @@ const initials = (row: ListRow) => {
 
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
 
-const TONE_MARKS: Record<Tone, ReactNode> = {
-  negative: <CloseIcon />,
-  positive: <CheckIcon />,
-  warning: <HourglassEmptyIcon />,
-  neutral: <RemoveIcon />,
-  accent: <RemoveIcon />,
-};
+const AVATAR_TONES: Tone[] = ["accent", "positive", "warning", "neutral"];
 
-const RowAvatar = ({ row, tone }: { row: ListRow; tone: Tone }) => (
-  <Box sx={{ position: "relative", flexShrink: 0 }}>
-    <Box
-      sx={{
-        width: 44,
-        height: 44,
+const RowAvatar = ({ row }: { row: ListRow }) => (
+  <Box
+    aria-hidden
+    sx={(t) => {
+      const tone = AVATAR_TONES[hash(row.username) % AVATAR_TONES.length];
+      return {
+        width: 36,
+        height: 36,
+        flexShrink: 0,
         borderRadius: "50%",
         display: "grid",
         placeItems: "center",
-        background: AVATAR_GRADIENTS[hash(row.username) % AVATAR_GRADIENTS.length],
-        color: "#fff",
+        bgcolor: t.palette.mode === "dark" ? "surface.highest" : "surface.container",
+        color: tone === "neutral" ? "text.primary" : toneColor(t, tone).fg,
+        fontFamily: MONO,
+        fontSize: 11,
         fontWeight: 700,
-        fontSize: 14,
-      }}
-    >
-      {initials(row)}
-    </Box>
-    <Box
-      sx={(t) => ({
-        position: "absolute",
-        right: -3,
-        bottom: -3,
-        width: 18,
-        height: 18,
-        borderRadius: "50%",
-        display: "grid",
-        placeItems: "center",
-        bgcolor: tone === "neutral" ? t.palette.surface.highest : toneColor(t, tone).fg,
-        color: "#fff",
-        border: `2px solid ${t.palette.surface.card}`,
-        "& svg": { fontSize: 11 },
-      })}
-    >
-      {TONE_MARKS[tone]}
-    </Box>
+      };
+    }}
+  >
+    {initials(row)}
   </Box>
 );
+
+// Account | date | status | actions; on phones the status drops below the account
+const rowGridSx = {
+  display: "grid",
+  gridTemplateColumns: {
+    xs: "minmax(0, 1fr) auto",
+    md: "minmax(0, 5fr) minmax(0, 3fr) minmax(0, 3fr) auto",
+  },
+  columnGap: 2,
+  rowGap: 1,
+  alignItems: "center",
+  px: { xs: 2, md: 3 },
+} as const;
+
+const segmentSx = (selected: boolean) => (t: Theme) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 0.75,
+  flexShrink: 0,
+  whiteSpace: "nowrap",
+  px: 1.5,
+  py: 0.75,
+  borderRadius: "8px",
+  fontSize: 13,
+  transition: "background-color .15s, color .15s",
+  ...(selected
+    ? {
+        fontWeight: 500,
+        color: "text.primary",
+        bgcolor: t.palette.mode === "dark" ? "surface.high" : "surface.card",
+        boxShadow: t.shadows[1],
+      }
+    : { color: "text.secondary", "&:hover": { color: "text.primary", bgcolor: "surface.container" } }),
+});
 
 interface ResultsDisplayProps {
   result: AnalysisResult;
@@ -212,7 +216,9 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
         })),
         source: "following.json",
         dateVerb: "Followed",
+        dateHeading: "Followed on",
         defaultSort: "az",
+        countTone: "negative",
         badge: () => ({ label: "Doesn't follow back", tone: "negative" }),
         csvFile: "non_followers.csv",
         csvHeaders: ["Username", "Profile URL", "Followed At"],
@@ -225,7 +231,7 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
           <>
             Follow requests you sent recently. <strong>Accepted</strong>: you now follow them.{" "}
             <strong>Not accepted</strong>: declined, withdrawn, or you've since unfollowed them.
-            Requests still waiting are in Pending requests.
+            Requests still waiting are in Pending.
           </>
         ),
         recent: true,
@@ -235,7 +241,9 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
         ),
         source: "recent_follow_requests.json",
         dateVerb: "Requested",
+        dateHeading: "Requested on",
         defaultSort: "newest",
+        countTone: "neutral",
         badge: (r) =>
           r.status === "accepted"
             ? { label: "Accepted", tone: "positive" }
@@ -246,14 +254,16 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
       },
       {
         key: "pending_requests",
-        label: "Pending requests",
+        label: "Pending",
         description:
           "Follow requests you've sent that haven't been accepted yet. You can withdraw one from that account's profile.",
         recent: false,
         rows: toRows(activity?.pending_requests),
         source: "pending_follow_requests.json",
         dateVerb: "Requested",
+        dateHeading: "Requested on",
         defaultSort: "newest",
+        countTone: "neutral",
         badge: () => ({ label: "Pending", tone: "warning" }),
         csvFile: "pending_follow_requests.csv",
         csvHeaders: ["Username", "Name", "Profile URL", "Requested At"],
@@ -272,7 +282,9 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
         rows: toRows(activity?.unfollowed, (u) => ({ follows_you: u.follows_you })),
         source: "recently_unfollowed_profiles.json",
         dateVerb: "Unfollowed",
+        dateHeading: "Unfollowed on",
         defaultSort: "newest",
+        countTone: "neutral",
         badge: (r) =>
           r.follows_you
             ? { label: "Follows you", tone: "positive" }
@@ -348,110 +360,72 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
   }, [tab, visibleRows]);
 
   return (
-    <Box id="results" sx={{ display: "flex", flexDirection: "column", gap: 2, scrollMarginTop: 88, minWidth: 0 }}>
-      {/* Segmented list tabs */}
-      <Box
-        role="tablist"
-        aria-label="Result lists"
-        sx={(t) => ({
-          display: "flex",
-          // Scroll sideways on small screens instead of stacking
-          flexWrap: { xs: "nowrap", md: "wrap" },
-          overflowX: "auto",
-          scrollbarWidth: "none",
-          "&::-webkit-scrollbar": { display: "none" },
-          gap: 0.75,
-          p: 0.5,
-          borderRadius: "12px",
-          bgcolor: "surface.lowest",
-          border: `1px solid ${t.palette.surface.border}`,
-        })}
-      >
-        {tabs.map((t) => {
-          const selected = t.key === tab.key;
-          const showCount = t.key === "non_followers" || activity;
-          return (
-            <ButtonBase
-              key={t.key}
-              role="tab"
-              aria-selected={selected}
-              onClick={() => onTabChange(t.key)}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                flexShrink: 0,
-                whiteSpace: "nowrap",
-                px: 2,
-                py: 1,
-                borderRadius: "8px",
-                fontSize: 13,
-                fontWeight: 600,
-                transition: "background-color .15s, color .15s",
-                ...(selected
-                  ? { bgcolor: "accent.container", color: "accent.onContainer" }
-                  : { color: "text.secondary", "&:hover": { bgcolor: "surface.container", color: "text.primary" } }),
-              }}
-            >
-              {t.label}
-              {showCount && (
-                <Box
-                  component="span"
-                  sx={{
-                    px: 1,
-                    py: 0.25,
-                    borderRadius: 999,
-                    fontFamily: MONO,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    ...(selected
-                      ? { bgcolor: "accent.onContainer", color: "accent.container" }
-                      : { bgcolor: "surface.container", color: "text.secondary" }),
-                  }}
-                >
-                  {t.rows.length.toLocaleString()}
-                </Box>
-              )}
-            </ButtonBase>
-          );
-        })}
-      </Box>
+    <Box id="results" sx={{ display: "flex", flexDirection: "column", gap: 2, scrollMarginTop: 128, minWidth: 0 }}>
+      {/* Filter bar: list tabs, then search and list actions */}
+      <Panel sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5, bgcolor: "surface.low" }}>
+        <Box
+          role="tablist"
+          aria-label="Result lists"
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            p: 0.5,
+            borderRadius: "10px",
+            bgcolor: "surface.lowest",
+            // Scroll sideways on small screens instead of stacking
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
+          }}
+        >
+          {tabs.map((t) => {
+            const selected = t.key === tab.key;
+            const showCount = t.key === "non_followers" || activity;
+            return (
+              <ButtonBase
+                key={t.key}
+                role="tab"
+                aria-selected={selected}
+                onClick={() => onTabChange(t.key)}
+                sx={segmentSx(selected)}
+              >
+                {t.label}
+                {showCount && (
+                  <Box
+                    component="span"
+                    sx={(th) => ({
+                      px: 0.75,
+                      borderRadius: 999,
+                      fontFamily: MONO,
+                      fontSize: 11,
+                      lineHeight: "16px",
+                      bgcolor: t.countTone === "neutral" ? "surface.high" : toneColor(th, t.countTone).bg,
+                      color: t.countTone === "neutral" ? "text.secondary" : toneColor(th, t.countTone).fg,
+                    })}
+                  >
+                    {t.rows.length.toLocaleString()}
+                  </Box>
+                )}
+              </ButtonBase>
+            );
+          })}
+        </Box>
 
-      <Box sx={{ px: 0.5 }}>
-        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{tab.description}</Typography>
-        {tab.recent && (
-          <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-            Instagram only includes roughly the last 90 days of this list.
-          </Mono>
-        )}
-      </Box>
-
-      {missingFromCache ? (
-        <Alert severity="info" variant="outlined">
-          This saved result is from before this list was added. Upload a new export to see it.
-        </Alert>
-      ) : (
-        <>
-          {/* Toolbar */}
-          <Panel
-            sx={{
-              p: 2,
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: 1,
-            }}
-          >
+        {!missingFromCache && (
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { sm: "center" }, gap: 1 }}>
             <Box
               sx={(t) => ({
                 flex: 1,
+                minWidth: 0,
+                height: 34,
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
                 px: 1.25,
                 borderRadius: "8px",
-                bgcolor: "surface.container",
-                "&:focus-within": { boxShadow: `0 0 0 1px ${t.palette.primary.main}` },
+                bgcolor: "surface.control",
+                boxShadow: t.shadows[1],
+                "&:focus-within": { boxShadow: `0 0 0 1px ${t.palette.text.primary}` },
               })}
             >
               <SearchIcon sx={{ fontSize: 18, color: "text.muted" }} />
@@ -462,26 +436,26 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Filter by username or name…"
+                placeholder="Filter handles or names…"
                 inputProps={{ "aria-label": "Filter accounts" }}
-                sx={{ flex: 1, fontSize: 13, py: 0.75 }}
+                sx={{ flex: 1, fontSize: 13 }}
               />
               <Box
                 component="kbd"
                 sx={{
                   display: { xs: "none", sm: "block" },
                   px: 0.75,
-                  py: 0.25,
                   borderRadius: "4px",
-                  bgcolor: "surface.high",
+                  bgcolor: "surface.container",
                   color: "text.muted",
-                  fontSize: 10,
+                  fontSize: 11,
+                  lineHeight: "18px",
                 }}
               >
                 /
               </Box>
             </Box>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, "& > button": { flex: { xs: 1, sm: "none" } } }}>
               <Select
                 size="small"
                 value={activeSort}
@@ -490,14 +464,15 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                   setPage(1);
                 }}
                 inputProps={{ "aria-label": "Sort" }}
-                sx={{
-                  flex: { xs: 1, sm: "none" },
+                sx={(t) => ({
+                  flex: { xs: "1 1 100%", sm: "none" },
+                  height: 34,
                   fontSize: 13,
-                  color: "text.secondary",
-                  bgcolor: "surface.container",
+                  bgcolor: "surface.control",
+                  boxShadow: t.shadows[1],
+                  "&:hover": { bgcolor: "surface.controlHover" },
                   "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                  "& .MuiSelect-select": { py: 0.9 },
-                }}
+                })}
               >
                 {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
                   <MenuItem key={key} value={key} sx={{ fontSize: 13 }}>
@@ -515,7 +490,7 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                     `Copied ${visibleRows.length.toLocaleString()} usernames`,
                   )
                 }
-                sx={ghostButtonSx}
+                sx={[ghostButtonSx, { height: 34 }]}
               >
                 Copy all
               </Button>
@@ -524,162 +499,214 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                 startIcon={<DownloadIcon />}
                 disabled={visibleRows.length === 0}
                 onClick={downloadCSV}
-                sx={ghostButtonSx}
+                sx={[ghostButtonSx, { height: 34 }]}
               >
                 Export CSV
               </Button>
             </Box>
-          </Panel>
+          </Box>
+        )}
+      </Panel>
 
-          {/* Account rows */}
-          <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 1 }}>
+      <Box sx={{ px: 0.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+        <Typography sx={{ fontSize: 13, color: "text.secondary", "& strong": { color: "text.primary", fontWeight: 600 } }}>
+          {tab.description}
+        </Typography>
+        <Typography sx={{ fontSize: 12, color: "text.muted" }}>
+          From <FileTag>{tab.source}</FileTag>
+          {tab.recent && " • Instagram only includes roughly the last 90 days of this list."}
+        </Typography>
+      </Box>
+
+      {missingFromCache ? (
+        <Alert severity="info" variant="outlined">
+          This saved result is from before this list was added. Upload a new export to see it.
+        </Alert>
+      ) : (
+        <Panel sx={{ overflow: "hidden" }}>
+          {/* Column headings */}
+          <Box
+            aria-hidden
+            sx={(t) => ({
+              ...rowGridSx,
+              display: { xs: "none", md: "grid" },
+              py: 1.25,
+              bgcolor: t.palette.mode === "dark" ? "surface.lowest" : "surface.low",
+              color: "text.muted",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            })}
+          >
+            <span>Account</span>
+            <span>{tab.dateHeading}</span>
+            <span>Status</span>
+            <Box component="span" sx={{ textAlign: "right" }}>
+              Actions
+            </Box>
+          </Box>
+
+          <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0 }}>
             {pageRows.length === 0 && (
-              <Panel component="li" sx={{ p: 4, textAlign: "center" }}>
+              <Box component="li" sx={{ p: 5, textAlign: "center" }}>
                 <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
                   {query ? `No accounts match "${query}".` : "Nothing in this list."}
                 </Typography>
-              </Panel>
+              </Box>
             )}
             {pageRows.map((row, i) => {
               const badge = tab.badge(row);
               return (
-                <Panel
+                <Box
                   component="li"
                   key={`${row.username}:${i}`}
-                  sx={{
-                    p: 2,
-                    display: "flex",
-                    flexDirection: { xs: "column", md: "row" },
-                    alignItems: { md: "center" },
-                    justifyContent: "space-between",
-                    gap: 2,
+                  sx={(t) => ({
+                    ...rowGridSx,
+                    py: 1.75,
+                    borderTop: i > 0 ? `1px solid ${t.palette.surface.border}` : "none",
                     transition: "background-color .15s",
-                    "&:hover": { bgcolor: "surface.container" },
-                  }}
+                    "&:hover": { bgcolor: "surface.low" },
+                  })}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
-                    <RowAvatar row={row} tone={badge.tone} />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                  {/* Account */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                    <RowAvatar row={row} />
+                    <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
                         <Link
                           href={row.profile_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           underline="hover"
                           noWrap
-                          sx={{ fontSize: 17, fontWeight: 700, color: "text.primary", maxWidth: "100%" }}
+                          sx={{ fontSize: 14, fontWeight: 600, color: "text.primary" }}
                         >
                           @{row.username}
                         </Link>
-                        <Pill tone={badge.tone}>{badge.label}</Pill>
+                        <NorthEastIcon aria-hidden sx={{ fontSize: 13, color: "text.muted", flexShrink: 0 }} />
                       </Box>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1,
-                          mt: 0.25,
-                          fontSize: 12,
-                          color: "text.secondary",
-                          minWidth: 0,
-                        }}
-                      >
-                        {row.name && (
-                          <>
-                            <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {row.name}
-                            </Box>
-                            <Box component="span" sx={{ color: "text.muted" }}>
-                              •
-                            </Box>
-                          </>
-                        )}
-                        <Mono sx={{ fontSize: 10, color: "text.muted", whiteSpace: "nowrap" }}>
-                          {row.date ? `${tab.dateVerb} ${monthYear(row.date)}` : "Date not in export"}
-                        </Mono>
-                      </Box>
+                      {row.name && (
+                        <Typography noWrap sx={{ fontSize: 12, color: "text.secondary" }}>
+                          {row.name}
+                        </Typography>
+                      )}
+                      <Mono sx={{ display: { md: "none" }, mt: 0.25, color: "text.muted" }}>
+                        {row.date ? `${tab.dateVerb} ${fullDate(row.date)}` : "Date not in export"}
+                      </Mono>
                     </Box>
                   </Box>
 
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: { xs: "space-between", md: "flex-end" },
-                      gap: 1.5,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Box sx={{ display: { xs: "none", sm: "flex" }, flexDirection: "column", alignItems: "flex-end" }}>
-                      {row.date && (
-                        <Mono sx={{ fontSize: 10, color: "text.secondary" }}>
-                          {tab.dateVerb} {relative(row.date)}
-                        </Mono>
-                      )}
-                      <Mono sx={{ fontSize: 10, color: "text.muted" }}>source: {tab.source}</Mono>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: { xs: "auto", sm: 0 } }}>
-                      <Tooltip title="Copy username">
-                        <IconButton
-                          size="small"
-                          aria-label={`Copy @${row.username}`}
-                          onClick={() => copy(row.username, `Copied @${row.username}`)}
-                          sx={{
-                            borderRadius: "8px",
-                            bgcolor: "surface.high",
-                            color: "text.secondary",
-                            "&:hover": { bgcolor: "surface.highest", color: "text.primary" },
-                          }}
-                        >
-                          <ContentCopyIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                  {/* Date */}
+                  <Box sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", gap: 0.25 }}>
+                    {row.date ? (
+                      <>
+                        <Mono sx={{ color: "text.primary", fontSize: 12 }}>{fullDate(row.date)}</Mono>
+                        <Mono sx={{ color: "text.muted", fontSize: 10 }}>{relative(row.date)}</Mono>
+                      </>
+                    ) : (
+                      <Mono sx={{ color: "text.muted" }}>Not in export</Mono>
+                    )}
                   </Box>
-                </Panel>
+
+                  {/* Status: under the account on phones */}
+                  <Box sx={{ gridColumn: { xs: "1 / -1", md: "auto" }, gridRow: { xs: 2, md: "auto" }, pl: { xs: 6, md: 0 } }}>
+                    <Pill tone={badge.tone}>{badge.label}</Pill>
+                  </Box>
+
+                  {/* Actions */}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                    <Tooltip title="Copy username">
+                      <IconButton
+                        size="small"
+                        aria-label={`Copy @${row.username}`}
+                        onClick={() => copy(row.username, `Copied @${row.username}`)}
+                        sx={{
+                          borderRadius: "6px",
+                          color: "text.secondary",
+                          "&:hover": { bgcolor: "surface.container", color: "text.primary" },
+                        }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Link
+                      href={row.profile_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      underline="none"
+                      aria-label={`Open @${row.username} on Instagram`}
+                      sx={(t) => ({
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: "6px",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: t.palette.mode === "dark" ? "accent.primary" : "text.primary",
+                        bgcolor: t.palette.mode === "dark" ? "transparent" : "surface.container",
+                        "&:hover": { bgcolor: t.palette.mode === "dark" ? "surface.container" : "surface.high" },
+                      })}
+                    >
+                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                        Profile
+                      </Box>
+                      <OpenInNewIcon sx={{ fontSize: 15 }} />
+                    </Link>
+                  </Box>
+                </Box>
               );
             })}
           </Box>
 
-          {/* Pagination */}
+          {/* Count and pagination */}
           {visibleRows.length > 0 && (
-            <Panel
+            <Box
               component="nav"
-              sx={{
-                p: 2,
+              aria-label="Pages"
+              sx={(t) => ({
+                px: { xs: 2, md: 3 },
+                py: 1.5,
+                bgcolor: t.palette.mode === "dark" ? "surface.lowest" : "surface.low",
                 display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 1,
-              }}
+              })}
             >
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.muted" }}>
                 Showing{" "}
-                <Box component="strong" sx={{ color: "text.primary" }}>
+                <Box component="strong" sx={{ color: "text.primary", fontWeight: 600 }}>
                   {((currentPage - 1) * PAGE_SIZE + 1).toLocaleString()}–
                   {Math.min(currentPage * PAGE_SIZE, visibleRows.length).toLocaleString()}
                 </Box>{" "}
                 of{" "}
-                <Box component="strong" sx={{ color: "text.primary" }}>
+                <Box component="strong" sx={{ color: "text.primary", fontWeight: 600 }}>
                   {visibleRows.length.toLocaleString()}
                 </Box>{" "}
                 {visibleRows.length === 1 ? "account" : "accounts"}
+                {pageCount > 1 && (
+                  <Mono sx={{ ml: 1 }}>
+                    • Page {currentPage} of {pageCount}
+                  </Mono>
+                )}
               </Typography>
               {pageCount > 1 && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <IconButton
+                  <Button
                     size="small"
-                    aria-label="Previous page"
                     disabled={currentPage === 1}
                     onClick={() => setPage(currentPage - 1)}
-                    sx={{ borderRadius: "8px", bgcolor: "surface.container" }}
+                    sx={[ghostButtonSx, { minWidth: 0, height: 30 }]}
                   >
-                    <ChevronLeftIcon fontSize="small" />
-                  </IconButton>
+                    Previous
+                  </Button>
                   {pageList(currentPage, pageCount).map((p, i) =>
                     p === "…" ? (
-                      <Mono key={`gap-${i}`} sx={{ px: 0.75, color: "text.muted" }}>
+                      <Mono key={`gap-${i}`} sx={{ display: { xs: "none", sm: "inline" }, px: 0.5, color: "text.muted" }}>
                         …
                       </Mono>
                     ) : (
@@ -688,39 +715,36 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                         aria-label={`Page ${p}`}
                         aria-current={p === currentPage ? "page" : undefined}
                         onClick={() => setPage(p)}
-                        sx={(t) => ({
-                          minWidth: 32,
-                          height: 32,
-                          px: 1,
-                          borderRadius: "8px",
-                          fontSize: 13,
-                          fontWeight: 600,
+                        sx={{
+                          display: { xs: p === currentPage ? "inline-flex" : "none", sm: "inline-flex" },
+                          minWidth: 30,
+                          height: 30,
+                          px: 0.75,
+                          borderRadius: "6px",
+                          fontFamily: MONO,
+                          fontSize: 12,
                           ...(p === currentPage
-                            ? { bgcolor: t.palette.accent.container, color: t.palette.accent.onContainer }
-                            : {
-                                color: t.palette.text.secondary,
-                                "&:hover": { bgcolor: alpha(t.palette.text.primary, 0.06) },
-                              }),
-                        })}
+                            ? { bgcolor: "accent.container", color: "accent.onContainer", fontWeight: 600 }
+                            : { color: "text.secondary", "&:hover": { bgcolor: "surface.container", color: "text.primary" } }),
+                        }}
                       >
                         {p}
                       </ButtonBase>
                     ),
                   )}
-                  <IconButton
+                  <Button
                     size="small"
-                    aria-label="Next page"
                     disabled={currentPage === pageCount}
                     onClick={() => setPage(currentPage + 1)}
-                    sx={{ borderRadius: "8px", bgcolor: "surface.container" }}
+                    sx={[ghostButtonSx, { minWidth: 0, height: 30 }]}
                   >
-                    <ChevronRightIcon fontSize="small" />
-                  </IconButton>
+                    Next
+                  </Button>
                 </Box>
               )}
-            </Panel>
+            </Box>
           )}
-        </>
+        </Panel>
       )}
 
       <Snackbar
@@ -728,7 +752,7 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
         autoHideDuration={2500}
         onClose={() => setToast(null)}
         message={toast}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       />
     </Box>
   );

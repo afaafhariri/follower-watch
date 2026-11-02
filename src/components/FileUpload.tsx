@@ -4,8 +4,7 @@ import { alpha } from "@mui/material/styles";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import { UPLOAD_CONFIG } from "../config";
-import { BRAND_GRADIENT } from "../theme";
-import { Mono, gradientButtonSx } from "./ui";
+import { Mono, primaryButtonSx } from "./ui";
 
 interface FileUploadProps {
   isUploading: boolean;
@@ -54,24 +53,20 @@ export const FileUpload = ({
       }}
       onDrop={handleDrop}
       sx={(t) => ({
-        border: "2px dashed",
-        borderColor: isDragOver
-          ? t.palette.secondary.main
-          : alpha(t.palette.primary.main, 0.55),
-        borderRadius: "16px",
+        border: "1.5px dashed",
+        borderColor: isDragOver ? t.palette.primary.main : alpha(t.palette.text.primary, 0.2),
+        borderRadius: "12px",
         px: { xs: 2, sm: 4 },
         py: { xs: 4, sm: 6 },
         textAlign: "center",
         cursor: isUploading ? "default" : "pointer",
         transition: "border-color .2s, background-color .2s",
-        bgcolor: isDragOver
-          ? alpha(t.palette.primary.main, 0.08)
-          : alpha(t.palette.surface.card, 0.4),
+        bgcolor: isDragOver ? alpha(t.palette.primary.main, 0.06) : t.palette.surface.low,
         "&:hover": isUploading
           ? undefined
           : {
-              borderColor: t.palette.secondary.main,
-              bgcolor: alpha(t.palette.primary.main, 0.05),
+              borderColor: alpha(t.palette.text.primary, 0.4),
+              bgcolor: t.palette.surface.container,
             },
       })}
     >
@@ -86,28 +81,28 @@ export const FileUpload = ({
 
       <Box
         sx={(t) => ({
-          width: 64,
-          height: 64,
+          width: 56,
+          height: 56,
           mx: "auto",
           mb: 2,
           borderRadius: "50%",
           display: "grid",
           placeItems: "center",
-          color: "accent.primary",
-          bgcolor: alpha(t.palette.primary.main, 0.14),
-          boxShadow: `0 0 32px ${alpha(t.palette.primary.main, 0.35)}`,
+          color: "text.primary",
+          bgcolor: "surface.card",
+          boxShadow: t.shadows[1],
         })}
       >
         {isUploading ? (
-          <FolderZipOutlinedIcon sx={{ fontSize: 32 }} />
+          <FolderZipOutlinedIcon sx={{ fontSize: 28 }} />
         ) : (
-          <CloudUploadOutlinedIcon sx={{ fontSize: 32 }} />
+          <CloudUploadOutlinedIcon sx={{ fontSize: 28 }} />
         )}
       </Box>
 
       {isUploading ? (
         <Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
             Processing your data…
           </Typography>
           {fileName && <Mono sx={{ color: "text.muted" }}>{fileName}</Mono>}
@@ -117,12 +112,12 @@ export const FileUpload = ({
               value={progress}
               aria-label="Analysis progress"
               sx={{
-                height: 8,
+                height: 6,
                 borderRadius: 4,
                 bgcolor: "surface.high",
                 "& .MuiLinearProgress-bar": {
                   borderRadius: 4,
-                  background: BRAND_GRADIENT,
+                  bgcolor: "accent.container",
                 },
               }}
             />
@@ -133,7 +128,7 @@ export const FileUpload = ({
         </Box>
       ) : (
         <Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
             Drop your Instagram export ZIP here
           </Typography>
           <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
@@ -141,9 +136,8 @@ export const FileUpload = ({
             need to unzip
           </Typography>
           <Button
-            size="large"
             startIcon={<CloudUploadOutlinedIcon />}
-            sx={[gradientButtonSx, { mt: 3 }]}
+            sx={[primaryButtonSx, { mt: 3, px: 2.5, py: 1 }]}
             onClick={(e) => {
               e.stopPropagation();
               handleClick();

@@ -1,25 +1,30 @@
 import { alpha, createTheme, type PaletteMode } from "@mui/material/styles";
 
-// "Luminescent Telemetry" design system (Google Stitch). The dark palette is
-// the source design; the light palette mirrors its roles at accessible contrast.
+// "Consumer Clean" design (Google Stitch, Follower Watch project). Light uses
+// the zinc neutrals of the light screen, dark the tonal surfaces of the dark
+// screen. Cards are borderless and separated by a hairline ring shadow.
 
 interface SurfacePalette {
+  // Page background
   base: string;
+  // Raised card
   card: string;
-  glass: string;
+  // Recessed tracks (segmented controls, sub-bars)
   lowest: string;
   low: string;
   container: string;
   high: string;
   highest: string;
   border: string;
+  // Fill of buttons, inputs and selects, and their hover
+  control: string;
+  controlHover: string;
 }
 
 interface AccentPalette {
-  // Text/icon tint on dark surfaces
+  // Text/icon tint
   primary: string;
-  tertiary: string;
-  // Filled control (active tab, primary button) and its foreground
+  // Filled primary action and its foreground
   container: string;
   onContainer: string;
 }
@@ -49,83 +54,80 @@ declare module "@mui/material/styles" {
   }
 }
 
-export const SANS = '"Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif';
+export const SANS = '"Geist", "Helvetica Neue", Arial, sans-serif';
 export const MONO = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
 
-export const BRAND_GRADIENT = "linear-gradient(135deg, #8B5CF6, #EC4899)";
-
 const tokens = {
-  dark: {
-    surface: {
-      base: "#0B0F19",
-      card: "#111827",
-      glass: "#171F33",
-      lowest: "#0A0E18",
-      low: "#171B26",
-      container: "#1C1F2A",
-      high: "#262A35",
-      highest: "#313540",
-      border: "rgba(255, 255, 255, 0.08)",
-    },
-    accent: {
-      primary: "#D0BCFF",
-      tertiary: "#C0C1FF",
-      container: "#A078FF",
-      onContainer: "#340080",
-    },
-    state: {
-      positive: "#10B981",
-      positiveSubtle: "#064E3B",
-      negative: "#F43F5E",
-      negativeSubtle: "#4C0519",
-      warning: "#F59E0B",
-      warningSubtle: "#451A03",
-    },
-    text: { primary: "#F9FAFB", secondary: "#9CA3AF", muted: "#64748B" },
-    primary: "#8B5CF6",
-    secondary: "#EC4899",
-  },
   light: {
     surface: {
-      base: "#F7F6FB",
+      base: "#FFFFFF",
       card: "#FFFFFF",
-      glass: "#F4F0FF",
-      lowest: "#ECE9F4",
-      low: "#F3F1F9",
-      container: "#EDEAF5",
-      high: "#E4E0EF",
-      highest: "#D9D4E8",
-      border: "rgba(15, 23, 42, 0.09)",
+      lowest: "#F4F4F5",
+      low: "#FAFAFA",
+      container: "#F4F4F5",
+      high: "#E4E4E7",
+      highest: "#D4D4D8",
+      border: "rgba(9, 9, 11, 0.08)",
+      control: "#FFFFFF",
+      controlHover: "#F4F4F5",
     },
     accent: {
-      primary: "#6D28D9",
-      tertiary: "#4F46E5",
-      container: "#E9DDFF",
-      onContainer: "#4C1D95",
+      primary: "#0059C5",
+      container: "#09090B",
+      onContainer: "#FAFAFA",
     },
     state: {
-      positive: "#047857",
-      positiveSubtle: "#D1FAE5",
-      negative: "#BE123C",
-      negativeSubtle: "#FFE4E6",
+      positive: "#059669",
+      positiveSubtle: "#ECFDF5",
+      negative: "#DC2626",
+      negativeSubtle: "#FEF2F2",
       warning: "#B45309",
       warningSubtle: "#FEF3C7",
     },
-    text: { primary: "#111827", secondary: "#4B5563", muted: "#6B7280" },
-    primary: "#7C3AED",
-    secondary: "#DB2777",
+    text: { primary: "#09090B", secondary: "#52525B", muted: "#71717A" },
+    primary: "#0070F3",
+    shadow: "0 0 0 1px rgba(9, 9, 11, 0.06), 0 1px 2px rgba(9, 9, 11, 0.05)",
+  },
+  dark: {
+    surface: {
+      base: "#12131A",
+      card: "#1A1B22",
+      lowest: "#0D0E15",
+      low: "#1A1B22",
+      container: "#1E1F26",
+      high: "#292931",
+      highest: "#33343C",
+      border: "rgba(255, 255, 255, 0.06)",
+      control: "#1E1F26",
+      controlHover: "#292931",
+    },
+    accent: {
+      primary: "#AEC6FF",
+      container: "#AEC6FF",
+      onContainer: "#002E6B",
+    },
+    state: {
+      positive: "#4EDEA3",
+      positiveSubtle: "#00311F",
+      negative: "#FFB4AB",
+      negativeSubtle: "#93000A",
+      warning: "#FFB955",
+      warningSubtle: "#452B00",
+    },
+    text: { primary: "#E3E1EC", secondary: "#C1C6D7", muted: "#8B90A0" },
+    primary: "#AEC6FF",
+    shadow: "0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3)",
   },
 } as const;
 
 export const createAppTheme = (mode: PaletteMode) => {
   const t = tokens[mode];
-  const dark = mode === "dark";
 
   return createTheme({
     palette: {
       mode,
       primary: { main: t.primary },
-      secondary: { main: t.secondary },
+      secondary: { main: t.state.positive },
       success: { main: t.state.positive },
       warning: { main: t.state.warning },
       error: { main: t.state.negative },
@@ -138,22 +140,24 @@ export const createAppTheme = (mode: PaletteMode) => {
     },
     typography: {
       fontFamily: SANS,
-      h1: { fontWeight: 800, letterSpacing: "-0.03em" },
-      h2: { fontWeight: 700, letterSpacing: "-0.02em" },
-      h3: { fontWeight: 600, fontSize: "1.125rem", lineHeight: 1.33 },
-      button: { textTransform: "none", fontWeight: 600 },
+      h1: { fontWeight: 600, letterSpacing: "-0.04em" },
+      h2: { fontWeight: 600, letterSpacing: "-0.02em" },
+      h3: { fontWeight: 600, fontSize: "1.125rem", lineHeight: 1.33, letterSpacing: "-0.015em" },
+      button: { textTransform: "none", fontWeight: 500 },
     },
     shape: { borderRadius: 8 },
+    shadows: [
+      "none",
+      t.shadow,
+      ...Array(23).fill(mode === "dark" ? "0 12px 32px -8px rgba(0,0,0,0.6)" : "0 12px 32px -8px rgba(9,9,11,0.16)"),
+    ] as ReturnType<typeof createTheme>["shadows"],
     components: {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
             backgroundColor: t.surface.base,
-            backgroundImage: `radial-gradient(ellipse 80% 50% at 50% -20%, ${alpha(
-              t.primary,
-              dark ? 0.15 : 0.1,
-            )}, transparent 70%)`,
-            backgroundRepeat: "no-repeat",
+            WebkitFontSmoothing: "antialiased",
+            MozOsxFontSmoothing: "grayscale",
           },
           "code, kbd": { fontFamily: MONO },
         },
@@ -169,9 +173,35 @@ export const createAppTheme = (mode: PaletteMode) => {
       MuiPaper: {
         styleOverrides: { root: { backgroundImage: "none" } },
       },
+      MuiMenu: {
+        styleOverrides: {
+          paper: { border: `1px solid ${t.surface.border}`, boxShadow: t.shadow },
+        },
+      },
+      MuiSnackbarContent: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 500,
+            backgroundColor: mode === "dark" ? t.surface.highest : "#09090B",
+            color: mode === "dark" ? t.text.primary : "#FAFAFA",
+          },
+        },
+      },
       MuiTooltip: {
         styleOverrides: {
-          tooltip: { fontFamily: MONO, fontSize: 11, backgroundColor: t.surface.highest, color: t.text.primary },
+          tooltip: {
+            fontFamily: MONO,
+            fontSize: 11,
+            backgroundColor: mode === "dark" ? t.surface.highest : "#09090B",
+            color: mode === "dark" ? t.text.primary : "#FAFAFA",
+          },
+        },
+      },
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: { backgroundColor: alpha(t.text.primary, 0.08) },
         },
       },
     },
