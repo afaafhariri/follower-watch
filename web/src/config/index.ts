@@ -21,6 +21,6 @@ export const RETRY_CONFIG = {
 } as const;
 
 export const UPLOAD_CONFIG = {
-  maxFileSizeMB: 50,
+  maxFileSizeMB: 30,
   acceptedTypes: [".zip", "application/zip", "application/x-zip-compressed"],
 } as const;
