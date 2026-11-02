@@ -27,6 +27,7 @@ Thumbs.db
 .env.local
 .env.*.local
 .vscode/
+.claude/
 
 # Logs
 *.log
