@@ -2,13 +2,13 @@
 
 A **privacy-first** tool that tells you which Instagram accounts don't follow you back — and who unfollowed you — using Meta's official data export. No Instagram password, no scraping, no third-party API access to your account: the only input is the data Meta itself hands you.
 
-Sign in, upload the export zip Meta gives you, and see who doesn't follow you back — processed in memory, never stored.
+Pick the export zip Meta gives you and see who doesn't follow you back. Everything runs in your browser: the file is never uploaded, and there's no sign-in or backend.
 
 > Prefer a set-and-forget nightly email instead of a browser? The headless pipeline that reads your Meta export straight from Google Drive lives in its own repository: [follower-watch-pipeline](https://github.com/afaafhariri/follower-watch-pipeline).
 
 ## How It Works
 
-The backend parses two files from Meta's export (`connections/followers_and_following/followers_*.json` and `following.json`), builds the follower set and following list, and subtracts: anyone you follow who isn't in your follower set "doesn't follow you back."
+Your browser parses two files from Meta's export (`connections/followers_and_following/followers_*.json` and `following.json`), builds the follower set and following list, and subtracts: anyone you follow who isn't in your follower set "doesn't follow you back."
 
 If the export includes them, three more lists are shown in their own tabs:
 
@@ -22,83 +22,61 @@ Meta keeps only about the last 90 days of the "recent" lists, whatever date rang
 
 
 ```
-┌──────────┐     ┌───────────────┐     ┌──────────────┐     ┌───────────┐
-│  Browser  │────▶│  Nginx (:80)  │────▶│  Go API      │────▶│  Redis    │
-│           │◀────│  Frontend     │◀────│  (:8080)     │◀────│  (:6379)  │
-└──────────┘     │  Static files │     │  OAuth +     │     │  Cache    │
-                 │  /api → proxy │     │  Analysis    │     └───────────┘
-                 └───────────────┘     └──────────────┘
+export.zip ──▶ unzip (fflate) ──▶ parse JSON ──▶ diff ──▶ results
+                                                   │
+                                                   └──▶ IndexedDB (last result)
 ```
 
-1. Sign in with Google (the endpoint is public, so sign-in prevents abuse).
-2. Upload your Meta export zip — it's processed **in memory** and never stored.
-3. See, sort, and search the accounts that don't follow you back.
-4. Your last result is optionally cached in Redis (30-day TTL, keyed by SHA-256-hashed email) so returning users see it without re-uploading.
+All of this runs in the browser. The host only serves the static HTML, JS and CSS.
+
+1. Pick your Meta export zip. It's read and analyzed **in your browser**; only the follow-list files inside it are decompressed.
+2. See, sort, and search the accounts that don't follow you back.
+3. Your last result is saved in this browser's IndexedDB so it's there next time. **Clear saved result** removes it.
+
+Production builds include a Content-Security-Policy with `connect-src 'none'`, so the browser blocks any outgoing request: the "never uploaded" promise is enforced, not just stated.
 
 ## Project Structure
 
 ```
 follower-watch/
-├── server/                  # Web-app backend: Go HTTP server
-│   ├── instagram.go        # Analyze handler, non-follower diff, rate limiting
-│   ├── export.go           # Meta export parsing (follow lists, requests, unfollows)
-│   ├── auth.go             # Google OAuth & session management
-│   ├── cache.go            # Redis caching layer
-│   ├── handlers.go         # Cached-result API handlers
-│   └── cmd/main.go         # HTTP server entrypoint
-├── web/                     # React + TypeScript + MUI web UI
-├── docker-compose.yml       # nginx + Go + Redis
-└── README.md
+├── src/
+│   ├── lib/analyzeExport.ts  # Meta export parsing and the non-follower diff
+│   ├── lib/savedResult.ts    # Last result in IndexedDB
+│   ├── hooks/                # File validation and progress for the UI
+│   └── components/           # React + MUI UI
+├── public/privacy.html       # Privacy policy
+├── index.html
+└── vite.config.ts            # Build config, including the Content-Security-Policy
 ```
 
 ## Getting Started
 
-**Prerequisites:** [Node.js 18+](https://nodejs.org/), [Go 1.21+](https://golang.org/dl/), [Docker](https://docs.docker.com/get-docker/) (optional).
+**Prerequisites:** [Node.js 18+](https://nodejs.org/).
 
-1. **Google OAuth setup** — in the [Google Cloud Console](https://console.cloud.google.com/), create an OAuth 2.0 Client ID (type: Web application) with redirect URI `http://localhost:8080/auth/google/callback` (local) or `https://yourdomain.com/auth/google/callback` (production).
+```bash
+npm install
+npm run dev
+```
 
-2. **Local development:**
-
-   ```bash
-   docker run -d --name redis -p 6379:6379 redis:alpine   # optional; caching degrades gracefully
-   cd server && cp .env.example .env                      # fill in OAuth credentials
-   go run cmd/main.go
-   ```
-
-   In a second terminal: `cd web && npm install && npm run dev`, then open http://localhost:3000.
-
-3. **Docker deployment** — create a root `.env` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL`, `SESSION_SECRET`, `FRONTEND_URL`, then:
-
-   ```bash
-   docker compose up --build -d
-   ```
+Then open http://localhost:3000.
 
 ### Tests
 
 ```bash
-cd server && go test -v ./...
+npm test
 ```
 
-## Environment Variables
+## Deployment
 
-### Backend
+The app is a static site deployed on [Vercel](https://vercel.com/). Import the repository in Vercel and it detects Vite automatically:
 
-| Variable | Description | Required |
-| --- | --- | --- |
-| `PORT` | Server port | No (default: `8080`) |
-| `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | No (default: `*`) |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
-| `GOOGLE_REDIRECT_URL` | OAuth callback URL | Yes |
-| `SESSION_SECRET` | Key for signing session cookies | Yes |
-| `FRONTEND_URL` | URL to redirect after login | No (default: `/`) |
-| `REDIS_URL` | Redis connection URI | No (caching is off when unset) |
+| Setting | Value |
+| --- | --- |
+| Framework preset | Vite |
+| Build command | `npm run build` |
+| Output directory | `dist` |
 
-### Frontend (build time)
-
-| Variable | Description | Required |
-| --- | --- | --- |
-| `VITE_API_URL` | Backend API URL prefix | No (default: `/api`) |
+Every push to the production branch deploys, and other branches get preview deployments. No environment variables or secrets are needed. Any other static host (Cloudflare Pages, Netlify, GitHub Pages) works with the same settings.
 
 ## License
 

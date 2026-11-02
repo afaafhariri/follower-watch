@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Privacy Policy - FollowerWatch</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root {
+        --bg: #f7f6fb;
+        --text: #111827;
+        --muted: #4b5563;
+        --accent: #6d28d9;
+        --rule: #e4e0ef;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0f19;
+          --text: #f9fafb;
+          --muted: #9ca3af;
+          --accent: #d0bcff;
+          --rule: #262a35;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.65 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 48px 16px 64px;
+      }
+      h1 { font-size: 2rem; margin: 0 0 4px; }
+      h2 { font-size: 1.15rem; margin: 36px 0 8px; }
+      p, li { color: var(--text); }
+      ul { padding-left: 1.25rem; }
+      a { color: var(--accent); }
+      .muted { color: var(--muted); font-size: 0.9rem; }
+      .back { display: inline-block; margin-bottom: 24px; text-decoration: none; }
+      hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0 16px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; Back to FollowerWatch</a>
+      <h1>Privacy Policy</h1>
+      <p class="muted">Last updated: 3 November 2026</p>
+
+      <p>
+        FollowerWatch shows which Instagram accounts you follow that don't follow you back, using the data
+        export you download from Instagram. <strong>Everything happens in your browser.</strong> Your export is
+        never uploaded, and there is no account or sign-in.
+      </p>
+
+      <h2>Your Instagram export</h2>
+      <p>
+        When you select your ZIP file, your browser opens it and works out the result on your own device. The file
+        is not sent to FollowerWatch or anyone else. Only the "Followers and following" part of the export is read.
+      </p>
+      <p>
+        You don't have to take our word for it: the site tells your browser to block every outgoing data request
+        (a Content-Security-Policy with <code>connect-src 'none'</code>), so it can't upload your file even by
+        mistake. You can also watch your browser's network tab while you use it.
+      </p>
+
+      <h2>What's saved, and where</h2>
+      <p>
+        So you can see your last result when you come back, it's saved in your browser's storage on this device.
+        It contains the usernames and profile links in your result, your follower and following counts, and recent
+        follow requests and unfollows if your export includes them. It never leaves your device.
+      </p>
+      <p>
+        Remove it any time with <strong>Clear saved result</strong> in the app, or by clearing this site's data in
+        your browser. Your light or dark theme choice is also kept in your browser.
+      </p>
+
+      <h2>What FollowerWatch collects</h2>
+      <p>
+        Nothing. There's no sign-in, no analytics, no tracking and no ads. Like any website, the hosting provider
+        that serves the site's files may keep standard request logs (such as IP address and time) to run and secure
+        the service. The site's fonts are loaded from Google Fonts, which receives the same kind of request
+        information.
+      </p>
+
+      <h2>Changes and contact</h2>
+      <p>
+        If this policy changes, the date at the top will be updated. Questions can be raised on
+        <a href="https://github.com/afaafhariri/follower-watch/issues" target="_blank" rel="noopener noreferrer">GitHub</a>.
+      </p>
+
+      <hr />
+      <p class="muted">FollowerWatch is not affiliated with Instagram or Meta.</p>
+    </main>
+  </body>
+</html>
