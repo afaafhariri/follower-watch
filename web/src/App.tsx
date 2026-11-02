@@ -184,7 +184,7 @@ const App = () => {
         <>
           <HeroShell id="overview">
             <HeroIntro
-              title="Instagram Account Diff & Audit"
+              title="Find Who Unfollowed You On Instagram"
               aside={s.cachedAt ? <CacheCapsule cachedAt={s.cachedAt} /> : undefined}
             >
               <IntroCopy />
