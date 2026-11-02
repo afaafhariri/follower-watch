@@ -92,7 +92,7 @@ cd server && go test -v ./...
 | `GOOGLE_REDIRECT_URL` | OAuth callback URL | Yes |
 | `SESSION_SECRET` | Key for signing session cookies | Yes |
 | `FRONTEND_URL` | URL to redirect after login | No (default: `/`) |
-| `REDIS_URL` | Redis connection URI | No (default: `redis://localhost:6379`) |
+| `REDIS_URL` | Redis connection URI | No (caching is off when unset) |
 
 ### Frontend (build time)
 

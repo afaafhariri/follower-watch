@@ -118,10 +118,13 @@ func pruneRequests(times []time.Time, cutoff time.Time) []time.Time {
 }
 
 func getClientIP(r *http.Request) string {
+	// Cloud Run (and the local nginx proxy) append the real client IP as the
+	// last X-Forwarded-For entry; earlier entries come from the client and can
+	// be forged to dodge the rate limiter.
 	forwarded := r.Header.Get("X-Forwarded-For")
 	if forwarded != "" {
 		parts := strings.Split(forwarded, ",")
-		return strings.TrimSpace(parts[0])
+		return strings.TrimSpace(parts[len(parts)-1])
 	}
 
 	realIP := r.Header.Get("X-Real-IP")
@@ -181,12 +184,14 @@ func AnalyzeFollowers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 50*1024*1024)
+	// Cloud Run rejects requests over 32 MiB before they reach the server, so stay
+	// below that with room for headers.
+	r.Body = http.MaxBytesReader(w, r.Body, 30*1024*1024)
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		if strings.Contains(err.Error(), "request body too large") {
-			sendError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 50MB.")
+			sendError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 30MB.")
 			return
 		}
 		sendError(w, http.StatusBadRequest, "Failed to read request body")

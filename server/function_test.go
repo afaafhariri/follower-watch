@@ -172,7 +172,7 @@ func TestGetClientIP(t *testing.T) {
 			name:       "X-Forwarded-For multiple IPs",
 			headers:    map[string]string{"X-Forwarded-For": "1.2.3.4, 5.6.7.8, 9.10.11.12"},
 			remoteAddr: "5.6.7.8:1234",
-			expected:   "1.2.3.4",
+			expected:   "9.10.11.12",
 		},
 		{
 			name:       "X-Real-IP",

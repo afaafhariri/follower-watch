@@ -20,12 +20,14 @@ const cacheTTL = 30 * 24 * time.Hour // 30 days
 func InitRedis() {
 	url := os.Getenv("REDIS_URL")
 	if url == "" {
-		url = "redis://localhost:6379"
+		log.Printf("REDIS_URL not set (caching disabled)")
+		return
 	}
 
+	// The URL can contain a password, so only the host is ever logged
 	opts, err := redis.ParseURL(url)
 	if err != nil {
-		log.Printf("Warning: invalid REDIS_URL %q: %v (caching disabled)", url, err)
+		log.Printf("Warning: invalid REDIS_URL (caching disabled)")
 		return
 	}
 
@@ -38,7 +40,7 @@ func InitRedis() {
 		log.Printf("Warning: Redis connection failed: %v (caching disabled)", err)
 		redisClient = nil
 	} else {
-		log.Printf("Connected to Redis at %s", url)
+		log.Printf("Connected to Redis at %s", opts.Addr)
 	}
 }
 

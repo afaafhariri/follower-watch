@@ -22,6 +22,12 @@ func main() {
 		port = "8080"
 	}
 
+	// Fail at startup rather than on the first sign-in, so a misconfigured
+	// Cloud Run revision never starts serving traffic
+	if os.Getenv("SESSION_SECRET") == "" {
+		log.Fatal("SESSION_SECRET environment variable is required")
+	}
+
 	followercount.InitRedis()
 
 	mux := http.NewServeMux()
@@ -68,7 +74,7 @@ func main() {
 		Addr:              ":" + port,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
-		// Generous enough for a 50 MB upload over a slow connection
+		// Generous enough for a 30 MB upload over a slow connection
 		ReadTimeout: 5 * time.Minute,
 		// Covers reading the body plus processing, so it must exceed ReadTimeout
 		WriteTimeout: 6 * time.Minute,
