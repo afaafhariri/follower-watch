@@ -3,7 +3,6 @@ import { Box, Button, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import HistoryIcon from "@mui/icons-material/History";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { Mono, ghostButtonSx } from "./ui";
@@ -71,10 +70,6 @@ export const ArchiveBar = ({ upload, cachedAt, onPickFile, onDropFile, onClearCa
             <Mono sx={{ fontSize: 10, color: "text.muted" }}>{detail}</Mono>
           </Box>
         </Box>
-        <Mono sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, fontSize: 10, color: "state.positive" }}>
-          <CheckCircleOutlineIcon sx={{ fontSize: 16 }} />
-          JSON export parsed
-        </Mono>
       </Box>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>

@@ -17,7 +17,6 @@ import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -635,23 +634,6 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                           <ContentCopyIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
-                      <Button
-                        size="small"
-                        href={row.profile_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        endIcon={<OpenInNewIcon sx={{ fontSize: "16px !important" }} />}
-                        aria-label={`Open @${row.username} on Instagram`}
-                        sx={(t) => ({
-                          bgcolor: "surface.glass",
-                          color: "text.primary",
-                          border: `1px solid ${t.palette.surface.border}`,
-                          px: 1.5,
-                          "&:hover": { bgcolor: "accent.container", color: "accent.onContainer" },
-                        })}
-                      >
-                        Open IG
-                      </Button>
                     </Box>
                   </Box>
                 </Panel>

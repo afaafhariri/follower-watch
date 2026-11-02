@@ -9,6 +9,7 @@ import ScheduleSendOutlinedIcon from "@mui/icons-material/ScheduleSendOutlined";
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import MemoryIcon from "@mui/icons-material/Memory";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Dot, FileTag, Micro, Mono, toneColor, type Tone } from "./ui";
 import type { AnalysisResult } from "../types";
 
@@ -206,8 +207,7 @@ export const CacheCapsule = ({ cachedAt }: { cachedAt: number }) => {
           <Dot />
         </Box>
         <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-          Expires in {remaining} {remaining === 1 ? "day" : "days"} • SHA-256
-          key
+          Expires in {remaining} {remaining === 1 ? "day" : "days"}
         </Mono>
       </Box>
     </Box>
@@ -326,113 +326,128 @@ export const StatCards = ({ result, analyzedAt }: StatCardsProps) => {
       : 0;
 
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: {
-          xs: "1fr",
-          sm: "repeat(2, 1fr)",
-          lg: "repeat(4, 1fr)",
-        },
-        gap: 2,
-      }}
-    >
-      <StatCard
-        label="Total following"
-        icon={
-          <PersonAddAltOutlinedIcon
-            sx={{ fontSize: 20, color: "accent.primary" }}
-          />
-        }
-        value={fmt(result.total_following)}
-        unit="accounts"
-        footer={
-          <>
-            <Mono
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 0.5,
-                fontSize: 10,
-              }}
-            >
-              <EventAvailableOutlinedIcon
-                sx={{ fontSize: 13, color: "state.positive" }}
-              />
-              {analyzedAt.toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(4, 1fr)",
+          },
+          gap: 2,
+        }}
+      >
+        <StatCard
+          label="Total following"
+          icon={
+            <PersonAddAltOutlinedIcon
+              sx={{ fontSize: 20, color: "accent.primary" }}
+            />
+          }
+          value={fmt(result.total_following)}
+          unit="accounts"
+          footer={
+            <>
+              <Mono
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  fontSize: 10,
+                }}
+              >
+                <EventAvailableOutlinedIcon
+                  sx={{ fontSize: 13, color: "state.positive" }}
+                />
+                {analyzedAt.toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </Mono>
+            </>
+          }
+        />
+        <StatCard
+          label="Total followers"
+          icon={
+            <GroupOutlinedIcon sx={{ fontSize: 20, color: "accent.tertiary" }} />
+          }
+          value={fmt(result.total_followers)}
+          unit="accounts"
+          footer={
+            <>
+              <Mono
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  fontSize: 10,
+                  color: "accent.tertiary",
+                }}
+              >
+                <SyncAltIcon sx={{ fontSize: 13 }} />
+                {fmt(mutual)} mutual
+              </Mono>
+            </>
+          }
+        />
+        <StatCard
+          label="Don't follow back"
+          icon={<PersonOffOutlinedIcon sx={{ fontSize: 20 }} />}
+          value={fmt(result.count)}
+          unit="accounts"
+          highlight="negative"
+          footer={
+            <Mono sx={{ fontSize: 10 }}>
+              {share.toFixed(1)}% of the accounts you follow
             </Mono>
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-              following.json
-            </Mono>
-          </>
-        }
-      />
-      <StatCard
-        label="Total followers"
-        icon={
-          <GroupOutlinedIcon sx={{ fontSize: 20, color: "accent.tertiary" }} />
-        }
-        value={fmt(result.total_followers)}
-        unit="accounts"
-        footer={
-          <>
-            <Mono
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 0.5,
-                fontSize: 10,
-                color: "accent.tertiary",
-              }}
-            >
-              <SyncAltIcon sx={{ fontSize: 13 }} />
-              {fmt(mutual)} mutual
-            </Mono>
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-              followers_*.json
-            </Mono>
-          </>
-        }
-      />
-      <StatCard
-        label="Don't follow back"
-        icon={<PersonOffOutlinedIcon sx={{ fontSize: 20 }} />}
-        value={fmt(result.count)}
-        unit="accounts"
-        highlight="negative"
-        footer={
-          <Mono sx={{ fontSize: 10 }}>
-            {share.toFixed(1)}% of the accounts you follow
-          </Mono>
-        }
-      />
-      <StatCard
-        label="Recent requests"
-        icon={
-          <ScheduleSendOutlinedIcon
-            sx={{ fontSize: 20, color: "state.warning" }}
-          />
-        }
-        value={activity ? fmt(accepted + notAccepted + pending) : "—"}
-        unit="sent, last ~90 days"
-        footer={
-          activity ? (
-            <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-              <MiniChip tone="positive">{accepted} acc</MiniChip>
-              <MiniChip tone="warning">{pending} pnd</MiniChip>
-              <MiniChip tone="negative">{notAccepted} not acc</MiniChip>
-            </Box>
-          ) : (
-            <Mono sx={{ fontSize: 10, color: "text.muted" }}>
-              Re-upload to see
-            </Mono>
-          )
-        }
-      />
+          }
+        />
+        <StatCard
+          label="Recent requests"
+          icon={
+            <ScheduleSendOutlinedIcon
+              sx={{ fontSize: 20, color: "state.warning" }}
+            />
+          }
+          value={activity ? fmt(accepted + notAccepted + pending) : "—"}
+          unit="sent, last ~90 days"
+          footer={
+            activity ? (
+              <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+                <MiniChip tone="positive">{accepted} acc</MiniChip>
+                <MiniChip tone="warning">{pending} pnd</MiniChip>
+                <MiniChip tone="negative">{notAccepted} not acc</MiniChip>
+              </Box>
+            ) : (
+              <Mono sx={{ fontSize: 10, color: "text.muted" }}>
+                Re-upload to see
+              </Mono>
+            )
+          }
+        />
+      </Box>
+      <Box
+        sx={(t) => ({
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 1,
+          px: 1.5,
+          py: 1,
+          borderRadius: "8px",
+          bgcolor: toneColor(t, "warning").bg,
+          color: toneColor(t, "warning").fg,
+        })}
+      >
+        <WarningAmberRoundedIcon sx={{ fontSize: 18, mt: "1px" }} />
+        <Typography sx={{ fontSize: 12, fontWeight: 500, color: "inherit" }}>
+          Following, follower and don't-follow-back counts may be higher than
+          what the Instagram app shows, because the export also includes
+          deactivated accounts.
+        </Typography>
+      </Box>
     </Box>
   );
 };
