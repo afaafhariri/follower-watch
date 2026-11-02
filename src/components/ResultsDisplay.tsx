@@ -18,7 +18,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { MONO } from "../theme";
 import { FileTag, Mono, Panel, Pill, ghostButtonSx, toneColor, type Tone } from "./ui";
 import type { AnalysisResult, FollowRequestStatus, Profile } from "../types";
@@ -630,31 +629,6 @@ export const ResultsDisplay = ({ result, activeTab, onTabChange }: ResultsDispla
                         <ContentCopyIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
-                    <Link
-                      href={row.profile_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      underline="none"
-                      aria-label={`Open @${row.username} on Instagram`}
-                      sx={(t) => ({
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: "6px",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: t.palette.mode === "dark" ? "accent.primary" : "text.primary",
-                        bgcolor: t.palette.mode === "dark" ? "transparent" : "surface.container",
-                        "&:hover": { bgcolor: t.palette.mode === "dark" ? "surface.container" : "surface.high" },
-                      })}
-                    >
-                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                        Profile
-                      </Box>
-                      <OpenInNewIcon sx={{ fontSize: 15 }} />
-                    </Link>
                   </Box>
                 </Box>
               );
