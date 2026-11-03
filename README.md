@@ -60,7 +60,7 @@ export.zip ──▶ unzip ──▶ parse JSON ──▶ following − follower
 
 ## Development
 
-**Requirements:** [Node.js](https://nodejs.org/) 22.13 or newer and [pnpm](https://pnpm.io/installation). The pnpm version is pinned in `package.json`, and pnpm switches to it on its own.
+**Requirements:** [Node.js](https://nodejs.org/) 22.13 or newer and [pnpm](https://pnpm.io/installation). The pnpm version is pinned in `package.json`, and pnpm switches to it on its own. `npm install` is refused on purpose, so the project only ever has a pnpm lockfile.
 
 ```bash
 pnpm install
