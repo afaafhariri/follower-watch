@@ -20,9 +20,9 @@ FollowerWatch runs entirely in your browser. Your export is never uploaded, ther
 | --- | --- |
 | **Your export** | Opened and analyzed on your device. It's never sent anywhere. |
 | **Saved result** | Kept in your browser's IndexedDB. **Clear saved result** removes it. |
-| **Accounts and tracking** | None. No sign-in, analytics, ads or cookies. |
+| **Accounts and analytics** | No sign-in, ads or cookies. Page views are counted anonymously with [Vercel Web Analytics](https://vercel.com/docs/analytics), which never sees your export. |
 
-This is enforced, not just promised. Production builds set a Content-Security-Policy with `connect-src 'none'`, so the browser blocks every outgoing data request from the app, even to its own site. You can check this yourself in your browser's network tab.
+This is enforced, not just promised. Production builds set a Content-Security-Policy with `connect-src 'self'`, so the browser blocks every outgoing data request to any other site. The site's own origin is allowed only so Vercel Web Analytics can record page views. You can check this yourself in your browser's network tab.
 
 The full policy is in [public/privacy.html](public/privacy.html).
 

@@ -63,9 +63,11 @@
         is not sent to FollowerWatch or anyone else. Only the "Followers and following" part of the export is read.
       </p>
       <p>
-        You don't have to take our word for it: the site tells your browser to block every outgoing data request
-        (a Content-Security-Policy with <code>connect-src 'none'</code>), so it can't upload your file even by
-        mistake. You can also watch your browser's network tab while you use it.
+        You don't have to take our word for it: the site tells your browser to block every outgoing data request to
+        other sites (a Content-Security-Policy with <code>connect-src 'self'</code>), so it can't upload your file
+        anywhere else even by mistake. The only request it makes is the anonymous page-view count described below,
+        sent to the site's own address, and it never includes your file or your result. You can also watch your
+        browser's network tab while you use it.
       </p>
 
       <h2>What's saved, and where</h2>
@@ -81,7 +83,13 @@
 
       <h2>What FollowerWatch collects</h2>
       <p>
-        Nothing. There's no sign-in, no analytics, no tracking and no ads. Like any website, the hosting provider
+        There's no sign-in, no cookies and no ads. To see how many people use the site, page views are counted
+        with <a href="https://vercel.com/docs/analytics/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel
+        Web Analytics</a>: the page address, the referring site, your browser, operating system and device type, and
+        your country. It doesn't use cookies or identify you, and it never sees your export or your result.
+      </p>
+      <p>
+        Like any website, the hosting provider
         that serves the site's files may keep standard request logs (such as IP address and time) to run and secure
         the service. The site's fonts are loaded from Google Fonts, which receives the same kind of request
         information.

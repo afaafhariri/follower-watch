@@ -190,7 +190,7 @@ export const ArchiveBar = ({ result, upload, cachedAt, onPickFile, onDropFile, o
         </Box>
         <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, color: "text.muted" }}>
           <VerifiedUserOutlinedIcon sx={{ fontSize: 14, color: "state.positive" }} />
-          Nothing sent to any server
+          Your export never left this device
         </Box>
       </Box>
     </Panel>
