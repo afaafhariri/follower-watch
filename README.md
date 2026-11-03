@@ -60,24 +60,24 @@ export.zip ──▶ unzip ──▶ parse JSON ──▶ following − follower
 
 ## Development
 
-**Requirements:** [Node.js](https://nodejs.org/) 18 or newer.
+**Requirements:** [Node.js](https://nodejs.org/) 22.13 or newer and [pnpm](https://pnpm.io/installation). The pnpm version is pinned in `package.json`, and pnpm switches to it on its own.
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Then open http://localhost:3000.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server with hot reload |
-| `npm test` | Run the tests (Vitest) |
-| `npm run typecheck` | Check types without building |
-| `npm run build` | Type-check and build to `dist/` |
-| `npm run preview` | Serve the production build locally, with the Content-Security-Policy on |
+| `pnpm dev` | Start the dev server with hot reload |
+| `pnpm test` | Run the tests (Vitest) |
+| `pnpm typecheck` | Check types without building |
+| `pnpm build` | Type-check and build to `dist/` |
+| `pnpm preview` | Serve the production build locally, with the Content-Security-Policy on |
 
-The Content-Security-Policy is only added to production builds, so use `npm run preview` to test with it.
+The Content-Security-Policy is only added to production builds, so use `pnpm preview` to test with it.
 
 ### Project structure
 
@@ -98,12 +98,13 @@ follower-watch/
 
 ## Deployment
 
-FollowerWatch is a static site deployed on [Vercel](https://vercel.com/). Importing the repository is all it takes, since Vercel detects Vite and uses these settings:
+FollowerWatch is a static site deployed on [Vercel](https://vercel.com/). Importing the repository is all it takes, since Vercel detects Vite and pnpm (from `pnpm-lock.yaml`) and uses these settings:
 
 | Setting | Value |
 | --- | --- |
 | Framework preset | Vite |
-| Build command | `npm run build` |
+| Install command | `pnpm install` |
+| Build command | `pnpm build` |
 | Output directory | `dist` |
 
 Pushes to `master` deploy to production, and other branches get preview deployments. No environment variables or secrets are needed. Any other static host, such as Cloudflare Pages, Netlify or GitHub Pages, works with the same settings.
